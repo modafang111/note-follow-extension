@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>note.com フォロー</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>note.com フォロー</h1>
+      <span id="status-badge" class="badge idle">待機中</span>
+    </header>
+
+    <p class="hint">
+      パスワードは使いません。Chrome で note.com にログインした Cookie を利用します。
+    </p>
+
+    <div class="actions">
+      <button id="start-btn" type="button">フォロー開始</button>
+      <button id="stop-btn" type="button" class="secondary" disabled>停止</button>
+    </div>
+
+    <p id="error" class="error" hidden></p>
+
+    <section class="progress-block">
+      <div class="progress-meta">
+        <span id="progress-label">0 / 0</span>
+        <span id="current-label"></span>
+      </div>
+      <div class="bar" aria-hidden="true">
+        <div id="bar-fill"></div>
+      </div>
+      <dl class="stats">
+        <div><dt>フォロー</dt><dd id="followed">0</dd></div>
+        <div><dt>スキップ</dt><dd id="skipped">0</dd></div>
+        <div><dt>失敗</dt><dd id="failed">0</dd></div>
+      </dl>
+    </section>
+
+    <section>
+      <h2>ログ</h2>
+      <ul id="log-list" class="log-list"></ul>
+    </section>
+
+    <footer>
+      <button id="options-btn" type="button" class="link">対象リストを編集</button>
+    </footer>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

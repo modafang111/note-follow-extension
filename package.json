@@ -1,0 +1,20 @@
+{
+  "name": "note-follow-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension to follow note.com users from a urlname list using the logged-in cookie session",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.2.1",
+    "@types/chrome": "^0.1.4",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}

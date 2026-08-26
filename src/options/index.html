@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フォロー対象の設定</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>フォロー対象の urlname</h1>
+      <p>
+        1行に1人ずつ入力してください。Chrome で
+        <a href="https://note.com/" target="_blank" rel="noreferrer">note.com</a>
+        にログイン済みであれば、その Cookie セッションを使います。パスワードは保存しません。
+      </p>
+      <p class="muted">
+        例: <code>fuji1080</code> / <code>https://note.com/fuji1080</code> /
+        <code>@fuji1080</code>。先頭が <code>#</code> の行はコメントです。
+      </p>
+      <label for="urlnames">urlname リスト</label>
+      <textarea
+        id="urlnames"
+        rows="16"
+        placeholder="# 1行1人&#10;example_user&#10;https://note.com/another_user"
+      ></textarea>
+      <p id="count" class="muted">0 人</p>
+      <div class="row">
+        <button id="save-btn" type="button">保存</button>
+        <span id="saved" hidden>保存しました</span>
+      </div>
+    </main>
+    <script type="module" src="./options.ts"></script>
+  </body>
+</html>

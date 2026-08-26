@@ -1,0 +1,222 @@
+:root {
+  color-scheme: light;
+  --green: #2cb696;
+  --green-dark: #1f8f75;
+  --bg: #f7f8f7;
+  --card: #ffffff;
+  --text: #222;
+  --muted: #667;
+  --border: #e4e8e6;
+  --danger: #c0392b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 360px;
+  padding: 16px;
+  font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 16px;
+}
+
+h2 {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 10px 0 14px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8eceb;
+  color: #555;
+}
+
+.badge.running {
+  background: #e4f7f1;
+  color: var(--green-dark);
+}
+
+.badge.completed {
+  background: #e8f0ff;
+  color: #3558a0;
+}
+
+.badge.stopped {
+  background: #fbeaea;
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--green);
+  color: #fff;
+}
+
+button:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+button.secondary {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #f0f2f1;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.link {
+  flex: none;
+  background: none;
+  color: var(--green-dark);
+  padding: 0;
+  font-weight: 600;
+}
+
+button.link:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
+.error {
+  margin: 10px 0 0;
+  color: var(--danger);
+}
+
+.progress-block {
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.bar {
+  height: 8px;
+  background: #eef1f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+#bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--green);
+  transition: width 0.2s ease;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 12px 0 0;
+  gap: 8px;
+}
+
+.stats div {
+  margin: 0;
+  text-align: center;
+}
+
+dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.log-list li {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.4;
+}
+
+.log-list li:last-child {
+  border-bottom: 0;
+}
+
+.log-list .name {
+  font-weight: 600;
+}
+
+.log-list .followed {
+  color: var(--green-dark);
+}
+
+.log-list .skipped {
+  color: #7a6a00;
+}
+
+.log-list .error {
+  color: var(--danger);
+  margin: 0;
+}
+
+footer {
+  margin-top: 12px;
+}
