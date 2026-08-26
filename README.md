@@ -1,2 +1,71 @@
-# note-follow-extension
-Chrome extension for note.com (Manifest V3, Vite, TypeScript)
+# note.com フォロー拡張
+
+note.com に **手動ログイン済み** の Chrome セッション（Cookie）を使い、options に登録した urlname を順にフォローする Manifest V3 拡張です。
+
+パスワードやセッション文字列は保存しません。フォロー処理は公式ではない Web API を呼び出します。
+
+## できること
+
+- オプションページでフォロー対象の **urlname を 1 行 1 人** で保存
+- ポップアップから **フォロー開始 / 停止**
+- `GET /api/v2/creators/{urlname}` で数値 ID を取得
+- 既にフォロー済み（および自分自身）はスキップ
+- `POST /api/v3/users/{numeric_id}/following` でフォロー
+- 1 件ごとに **3〜5 秒のランダム待機**
+- 進捗・ログをポップアップに表示
+
+## 必要環境
+
+- Node.js 20 以降
+- Google Chrome（または Chromium 系）
+
+## ビルド
+
+リポジトリをクローンしたディレクトリで:
+
+```bash
+npm install
+npm run build
+```
+
+成果物は `dist/` に出力されます。
+
+## Chrome への読み込み（ローカル）
+
+1. Chrome で [chrome://extensions](chrome://extensions) を開く
+2. 右上の **デベロッパーモード** をオンにする
+3. **パッケージ化されていない拡張機能を読み込む** をクリック
+4. このリポジトリの **`dist`** フォルダを選択する
+5. ツールバーに「note.com フォロー」が追加される
+
+コードを直したあとは `npm run build` を再実行し、拡張の **再読み込み** を押してください。
+
+開発中にホットリロードしたい場合は `npm run dev` を使い、同じ手順で Vite が出力するディレクトリ（通常は `dist`）を読み込みます。
+
+## 使い方
+
+1. Chrome で [note.com](https://note.com/) を開き、**いつもどおり手動ログイン**する
+2. 拡張アイコンを右クリック → **オプション**（またはポップアップの「対象リストを編集」）
+3. フォローしたい人の urlname を 1 行 1 人で入力して保存  
+   例:
+   ```
+   example_user
+   https://note.com/another_user
+   @someone
+   ```
+4. 拡張アイコンをクリックし、**フォロー開始**
+5. 途中で止めたいときは **停止**
+
+ポップアップを閉じても、実行中のジョブはバックグラウンドで続きます。再度開くと進捗が復元されます。
+
+## 注意
+
+- note.com の非公式 API を使っています。仕様変更で動かなくなることがあります
+- 短時間に大量フォローすると制限やアカウント制限の対象になる可能性があります。対象リストは必要最小限にしてください
+- この拡張はログイン Cookie を読み取って API を呼び出すだけで、パスワードは扱いません
+
+## テスト
+
+```bash
+npm test
+```
