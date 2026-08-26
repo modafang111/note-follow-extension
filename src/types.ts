@@ -26,6 +26,7 @@ export type FollowDecision = "follow" | "skip-following" | "skip-myself";
 
 export type Creator = {
   id: number;
+  key: string;
   urlname: string;
   nickname?: string;
   isFollowing: boolean;

@@ -102,7 +102,7 @@ export async function processNext(): Promise<void> {
           message: "自分自身のためスキップ",
         });
       } else {
-        await followUser(creator.id);
+        await followUser(creator.key);
         job.followed += 1;
         prependLog(job, {
           urlname,

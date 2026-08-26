@@ -32,14 +32,44 @@ async function getXsrfToken(): Promise<string | undefined> {
   }
 }
 
+async function buildCookieHeader(): Promise<string> {
+  const cookies = await chrome.cookies.getAll({ url: `${API_ORIGIN}/` });
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+}
+
+function formatApiError(body: unknown): string {
+  if (body == null) return "不明なエラー";
+  if (typeof body === "string") return body;
+  if (typeof body !== "object") return String(body);
+
+  const record = body as Record<string, unknown>;
+  if ("error" in record) return formatApiError(record.error);
+  if (typeof record.message === "string") return record.message;
+  if (typeof record.code === "string" && typeof record.message === "string") {
+    return `${record.code}: ${record.message}`;
+  }
+
+  try {
+    return JSON.stringify(body);
+  } catch {
+    return String(body);
+  }
+}
+
 export async function noteFetch(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
   const token = await getXsrfToken();
+  const cookieHeader = await buildCookieHeader();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   headers.set("X-Requested-With", "XMLHttpRequest");
+  headers.set("Origin", API_ORIGIN);
+  headers.set("Referer", `${API_ORIGIN}/`);
+  if (cookieHeader) {
+    headers.set("Cookie", cookieHeader);
+  }
   if (token) {
     headers.set("X-XSRF-TOKEN", token);
     headers.set("X-CSRF-Token", token);
@@ -96,12 +126,17 @@ export async function fetchCreator(urlname: string): Promise<Creator> {
 
   const data = unwrapData<Record<string, unknown>>(await readJson(res));
   const id = Number(data?.id);
+  const key = typeof data?.key === "string" ? data.key.trim() : "";
   if (!Number.isFinite(id)) {
     throw new NoteApiError(`数値 ID を取得できません: ${urlname}`);
+  }
+  if (!key) {
+    throw new NoteApiError(`ユーザー key を取得できません: ${urlname}`);
   }
 
   return {
     id,
+    key,
     urlname: String(data.urlname ?? urlname),
     nickname: typeof data.nickname === "string" ? data.nickname : undefined,
     isFollowing: Boolean(data.isFollowing ?? data.is_following),
@@ -109,10 +144,9 @@ export async function fetchCreator(urlname: string): Promise<Creator> {
   };
 }
 
-export async function followUser(numericId: number): Promise<void> {
-  const res = await noteFetch(`/api/v3/users/${numericId}/following`, {
+export async function followUser(userKey: string): Promise<void> {
+  const res = await noteFetch(`/api/v3/users/${encodeURIComponent(userKey)}/following`, {
     method: "POST",
-    body: "{}",
   });
 
   if (res.status === 401 || res.status === 403) {
@@ -127,10 +161,7 @@ export async function followUser(numericId: number): Promise<void> {
 
   if (res.status !== 200 && res.status !== 201 && res.status !== 204) {
     const body = await readJson(res);
-    const detail =
-      typeof body === "object" && body && "error" in body
-        ? String((body as { error: unknown }).error)
-        : `HTTP ${res.status}`;
+    const detail = body == null ? `HTTP ${res.status}` : formatApiError(body);
     throw new NoteApiError(`フォローに失敗しました: ${detail}`, res.status);
   }
 }
