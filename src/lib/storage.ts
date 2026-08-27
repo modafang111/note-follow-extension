@@ -27,6 +27,8 @@ export const EMPTY_JOB: JobState = {
   failed: 0,
   logs: [],
   error: null,
+  startedAt: null,
+  finishedAt: null,
 };
 
 export async function getUrlnamesText(): Promise<string> {

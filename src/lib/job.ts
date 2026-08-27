@@ -16,6 +16,10 @@ import { queueAndDeliverThanks } from "./thanks-delivery";
 export const FOLLOW_ALARM = "note-follow-next";
 const MAX_LOGS = 80;
 
+function stampFinished(job: JobState): void {
+  job.finishedAt = Date.now();
+}
+
 let processing = false;
 
 function prependLog(job: JobState, log: Omit<JobLog, "at">): void {
@@ -52,6 +56,8 @@ export async function startFollowJob(): Promise<JobState> {
     status: "running",
     queue: [...urlnames],
     total: urlnames.length,
+    startedAt: Date.now(),
+    finishedAt: null,
   };
   prependLog(job, {
     urlname: "",
@@ -102,6 +108,7 @@ export async function stopFollowJob(): Promise<JobState> {
       status: "info",
       message: "停止しました",
     });
+    stampFinished(job);
     await setJob(job);
     await notifyJobFinished(job);
   } else {
@@ -127,6 +134,7 @@ export async function processNext(): Promise<void> {
         status: "info",
         message: "完了しました",
       });
+      stampFinished(job);
       await setJob(job);
       await notifyJobFinished(job);
       return;
@@ -183,6 +191,7 @@ export async function processNext(): Promise<void> {
         job.status = "stopped";
         job.current = null;
         job.error = message;
+        stampFinished(job);
         await setJob(job);
         await chrome.alarms.clear(FOLLOW_ALARM);
         await notifyJobFinished(job);
@@ -200,6 +209,7 @@ export async function processNext(): Promise<void> {
         status: "info",
         message: "完了しました",
       });
+      stampFinished(job);
       await setJob(job);
       await notifyJobFinished(job);
       return;

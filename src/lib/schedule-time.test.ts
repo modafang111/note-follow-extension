@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatTestPreview,
+  formatDateTime,
   nextAlarmWhen,
   parseStartAtMs,
   REPEAT_MINUTES,
@@ -40,6 +41,13 @@ describe("nextAlarmWhen", () => {
     expect(REPEAT_MINUTES.hourly).toBe(60);
     const now = start + 40 * 60 * 1000;
     expect(nextAlarmWhen(start, now, "every-30m")).toBe(start + 60 * 60 * 1000);
+  });
+});
+
+describe("formatDateTime", () => {
+  it("prints date and time with seconds", () => {
+    const ms = new Date(2026, 7, 27, 15, 4, 9).getTime();
+    expect(formatDateTime(ms)).toBe("2026/08/27 15:04:09");
   });
 });
 

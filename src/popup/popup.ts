@@ -1,4 +1,5 @@
 import type { JobState, RuntimeMessage, RuntimeResponse, ThanksItem } from "../types";
+import { formatDateTime } from "../lib/schedule-time";
 
 const importBtn = document.querySelector<HTMLButtonElement>("#import-btn")!;
 const testBtn = document.querySelector<HTMLButtonElement>("#test-btn")!;
@@ -20,6 +21,7 @@ const thanksPreview = document.querySelector<HTMLElement>("#thanks-preview")!;
 const thanksOpen = document.querySelector<HTMLButtonElement>("#thanks-open")!;
 const thanksSkip = document.querySelector<HTMLButtonElement>("#thanks-skip")!;
 const scheduleNext = document.querySelector<HTMLElement>("#schedule-next")!;
+const lastRun = document.querySelector<HTMLElement>("#last-run")!;
 
 const STATUS_LABEL: Record<JobState["status"], string> = {
   idle: "待機中",
@@ -52,6 +54,14 @@ function render(job: JobState, error?: string): void {
   skippedEl.textContent = String(job.skipped);
   failedEl.textContent = String(job.failed);
 
+  if (job.status === "running" && job.startedAt) {
+    lastRun.textContent = `開始: ${formatDateTime(job.startedAt)}`;
+  } else if (job.finishedAt) {
+    lastRun.textContent = `終了: ${formatDateTime(job.finishedAt)}`;
+  } else {
+    lastRun.textContent = "終了: まだありません";
+  }
+
   const message = error || job.error;
   errorEl.hidden = !message;
   errorEl.textContent = message ?? "";
@@ -68,7 +78,7 @@ function render(job: JobState, error?: string): void {
     const li = document.createElement("li");
     const name = document.createElement("div");
     name.className = "name";
-    name.textContent = log.urlname || "システム";
+    name.textContent = `${formatDateTime(log.at)}  ${log.urlname || "システム"}`;
     const msg = document.createElement("div");
     msg.className = log.status;
     msg.textContent = log.message;

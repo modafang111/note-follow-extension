@@ -1,3 +1,4 @@
+import { formatDateTime } from "./schedule-time";
 import type { JobState } from "../types";
 
 export async function syncJobBadge(job: JobState): Promise<void> {
@@ -20,12 +21,13 @@ export async function syncJobBadge(job: JobState): Promise<void> {
 }
 
 export async function notifyPopup(title: string, message: string): Promise<void> {
+  const when = formatDateTime(Date.now());
   try {
     await chrome.notifications.create(`note-follow-${Date.now()}`, {
       type: "basic",
       iconUrl: chrome.runtime.getURL("icons/icon128.png"),
       title,
-      message,
+      message: `${when}\n${message}`,
       priority: 2,
     });
   } catch {

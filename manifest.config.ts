@@ -5,7 +5,7 @@ export default defineManifest({
   name: "note.com フォロー",
   description:
     "note.com のログイン Cookie を使い、フォロワーへのフォロー返しとお礼メッセージ送信を行います。パスワードは保存しません。",
-  version: "0.3.2",
+  version: "0.3.3",
   action: {
     default_title: "note.com フォロー",
     default_popup: "src/popup/index.html",

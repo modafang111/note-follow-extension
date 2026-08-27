@@ -36,6 +36,8 @@ export type JobState = {
   failed: number;
   logs: JobLog[];
   error: string | null;
+  startedAt: number | null;
+  finishedAt: number | null;
 };
 
 export type FollowDecision = "follow" | "skip-following" | "skip-myself";
