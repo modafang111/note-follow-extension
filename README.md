@@ -84,9 +84,9 @@ PowerShell（推奨）:
 
 ```powershell
 $env:CURSOR_API_KEY = "（発行したキー）"
-powershell -ExecutionPolicy Bypass -File .\scripts\sync-cloud-agents.ps1
+powershell -ExecutionPolicy Bypass -File D:\dev\note-follow-extension\scripts\sync-cloud-agents.ps1
 ```
 
-ホームディレクトリ `C:\Users\user` からでも動きます。リポジトリが無ければ `~\note-follow-extension` にクローンし、ブランチは `~\cursor-cloud-worktrees\note-follow-extension\` 配下の worktree に並べます。今の作業ブランチは切り替えません。
+配置先は `D:\dev` です。リポジトリが無ければ `D:\dev\note-follow-extension` にクローンし、ブランチは `D:\dev\cursor-cloud-worktrees\note-follow-extension\` 配下の worktree に並べます。今の作業ブランチは切り替えません。変更する場合は `-DevRoot` か環境変数 `CURSOR_SYNC_ROOT` を使います。
 
 会話ごとローカル Agent に移す操作（Move to Local）はこのスクリプトではできません。コードの取り込みだけです。

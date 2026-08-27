@@ -1,15 +1,35 @@
 #!/usr/bin/env bash
 # Cursor Cloud Agent が push したブランチを git worktree に一括取り込みする。
-# Git リポジトリではない場所（例: $HOME）からでも動く。Windows は PowerShell 版を推奨。
+# Git リポジトリではない場所からでも動く。既定の配置先は D:\dev（Git Bash では /d/dev）。
+# Windows は PowerShell 版を推奨。
 set -euo pipefail
 
 API_BASE="${CURSOR_API_BASE:-https://api.cursor.com}"
 REPO_URL="${REPO_URL:-https://github.com/modafang111/note-follow-extension.git}"
-DEFAULT_CLONE="${HOME}/note-follow-extension"
 LIST_ONLY=0
 NO_CLONE=0
 REPO_PATH=""
+DEV_ROOT="${CURSOR_SYNC_ROOT:-}"
 WT_ROOT=""
+
+default_dev_root() {
+  if [[ -n "${CURSOR_SYNC_ROOT:-}" ]]; then
+    printf '%s\n' "$CURSOR_SYNC_ROOT"
+    return
+  fi
+  if [[ -d /d/dev ]]; then
+    printf '%s\n' /d/dev
+    return
+  fi
+  if [[ -d D:/dev ]]; then
+    printf '%s\n' D:/dev
+    return
+  fi
+  case "$(uname -s 2>/dev/null || true)" in
+    MINGW*|MSYS*|CYGWIN*) printf '%s\n' /d/dev; return ;;
+  esac
+  printf '%s\n' "${HOME}/dev"
+}
 
 usage() {
   cat <<'EOF'
@@ -18,7 +38,8 @@ usage() {
 
 Options:
   --repo-path PATH   Git リポジトリのパス
-  --worktree-root D  worktree の作成先（省略時は ~/cursor-cloud-worktrees/note-follow-extension）
+  --dev-root DIR     プログラムの配置先（省略時は D:\\dev または /d/dev）
+  --worktree-root D  worktree の作成先（省略時は <dev-root>/cursor-cloud-worktrees/note-follow-extension）
   --list-only        checkout せずブランチ一覧だけ出す
   --no-clone         リポジトリが無いとき clone しない
   -h, --help         このヘルプ
@@ -31,6 +52,7 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo-path) REPO_PATH="${2:-}"; shift 2 ;;
+    --dev-root) DEV_ROOT="${2:-}"; shift 2 ;;
     --worktree-root) WT_ROOT="${2:-}"; shift 2 ;;
     --list-only) LIST_ONLY=1; shift ;;
     --no-clone) NO_CLONE=1; shift ;;
@@ -91,6 +113,11 @@ is_git_repo() {
   git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1
 }
 
+if [[ -z "$DEV_ROOT" ]]; then
+  DEV_ROOT="$(default_dev_root)"
+fi
+DEFAULT_CLONE="${DEV_ROOT}/note-follow-extension"
+
 resolve_repo() {
   if [[ -n "$REPO_PATH" ]]; then
     if ! is_git_repo "$REPO_PATH"; then
@@ -100,23 +127,21 @@ resolve_repo() {
     git -C "$REPO_PATH" rev-parse --show-toplevel
     return
   fi
+  if is_git_repo "$DEFAULT_CLONE"; then
+    git -C "$DEFAULT_CLONE" rev-parse --show-toplevel
+    return
+  fi
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git rev-parse --show-toplevel
     return
   fi
-  local guess
-  for guess in "$DEFAULT_CLONE" "${HOME}/src/note-follow-extension" "${HOME}/Documents/note-follow-extension"; do
-    if is_git_repo "$guess"; then
-      echo "$guess"
-      return
-    fi
-  done
   if [[ "$NO_CLONE" -eq 1 ]]; then
     echo "error Git リポジトリが見つかりません。--repo-path を指定するか clone してください。" >&2
     exit 1
   fi
   echo "リポジトリが無いのでクローンします: $REPO_URL" >&2
   echo "  -> $DEFAULT_CLONE" >&2
+  mkdir -p "$DEV_ROOT"
   git clone "$REPO_URL" "$DEFAULT_CLONE"
   echo "$DEFAULT_CLONE"
 }
@@ -125,7 +150,7 @@ REPO="$(resolve_repo)"
 TARGET_SLUG="$(slug "$REPO_URL")"
 ORIGIN_URL="$(git -C "$REPO" remote get-url origin)"
 ORIGIN_SLUG="$(slug "$ORIGIN_URL")"
-WT_ROOT="${WT_ROOT:-${HOME}/cursor-cloud-worktrees/note-follow-extension}"
+WT_ROOT="${WT_ROOT:-${DEV_ROOT}/cursor-cloud-worktrees/note-follow-extension}"
 mkdir -p "$WT_ROOT"
 
 echo "repo     $REPO"

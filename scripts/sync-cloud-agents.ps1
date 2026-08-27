@@ -4,24 +4,20 @@
   Cursor Cloud Agent が push したブランチを、手元の git worktree に一括で取り込む。
 
 .DESCRIPTION
-  C:\Users\user のような Git リポジトリではない場所からでも実行できる。
-  リポジトリが無ければクローンし、今のブランチは切り替えない。
+  Git リポジトリではない場所からでも実行できる。
+  リポジトリが無ければ D:\dev\note-follow-extension にクローンし、今のブランチは切り替えない。
 
   会話履歴の「Move to Local」は API に無いので、このスクリプトはコードだけ同期する。
 
 .EXAMPLE
   $env:CURSOR_API_KEY = "key_xxxxxxxx"
-  powershell -ExecutionPolicy Bypass -File .\scripts\sync-cloud-agents.ps1
-
-.EXAMPLE
-  ホームから（リポジトリ未クローンでも可）:
-  $env:CURSOR_API_KEY = "key_xxxxxxxx"
-  powershell -ExecutionPolicy Bypass -File $HOME\note-follow-extension\scripts\sync-cloud-agents.ps1
+  powershell -ExecutionPolicy Bypass -File D:\dev\note-follow-extension\scripts\sync-cloud-agents.ps1
 #>
 [CmdletBinding()]
 param(
     [string]$RepoPath,
     [string]$RepoUrl = "https://github.com/modafang111/note-follow-extension.git",
+    [string]$DevRoot,
     [string]$WorktreeRoot,
     [switch]$ListOnly,
     [switch]$NoClone
@@ -31,7 +27,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $ApiBase = if ($env:CURSOR_API_BASE) { $env:CURSOR_API_BASE.TrimEnd("/") } else { "https://api.cursor.com" }
-$DefaultClonePath = Join-Path $HOME "note-follow-extension"
+if (-not $DevRoot) {
+    if ($env:CURSOR_SYNC_ROOT) { $DevRoot = $env:CURSOR_SYNC_ROOT } else { $DevRoot = "D:\dev" }
+}
+$DefaultClonePath = Join-Path $DevRoot "note-follow-extension"
 
 function Write-Info([string]$Message) { Write-Host $Message }
 function Write-WarnLine([string]$Message) { Write-Host "skip  $Message" -ForegroundColor Yellow }
@@ -170,19 +169,13 @@ function Resolve-RepoPath {
         return (Resolve-Path $RepoPath).Path
     }
 
+    if (Test-GitRepo $DefaultClonePath) {
+        return (Resolve-Path $DefaultClonePath).Path
+    }
+
     if (Test-GitRepo (Get-Location).Path) {
         $top = Invoke-Git -GitArgs @("rev-parse", "--show-toplevel")
         return $top.Trim()
-    }
-
-    $guesses = @(
-        $DefaultClonePath,
-        (Join-Path $HOME "src\note-follow-extension"),
-        (Join-Path $HOME "Documents\note-follow-extension"),
-        (Join-Path $HOME "projects\note-follow-extension")
-    )
-    foreach ($guess in $guesses) {
-        if (Test-GitRepo $guess) { return $guess }
     }
 
     if ($NoClone) {
@@ -216,7 +209,7 @@ $originSlug = ConvertTo-RepoSlug $originUrl
 if ($WorktreeRoot) {
     $wtRoot = $WorktreeRoot
 } else {
-    $wtRoot = Join-Path $HOME "cursor-cloud-worktrees\note-follow-extension"
+    $wtRoot = Join-Path $DevRoot "cursor-cloud-worktrees\note-follow-extension"
 }
 New-Item -ItemType Directory -Force -Path $wtRoot | Out-Null
 

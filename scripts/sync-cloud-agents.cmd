@@ -1,5 +1,5 @@
 @echo off
-REM ホームディレクトリからでも可。キーはチャットに貼らない。
+REM D:\dev 配下に配置する。キーはチャットに貼らない。
 if "%CURSOR_API_KEY%"=="" (
   echo error CURSOR_API_KEY が未設定です。チャットにキーを貼らないでください.
   echo.
