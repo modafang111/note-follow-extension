@@ -31,7 +31,7 @@
 【注意事項】
 ・対象バージョン以外では、未翻訳の文言が残る場合があります。
 ・本ファイルは非公式の日本語化支援です。プラグイン作者および WordPress.org 公式翻訳プロジェクトとは別物です。
-・プラグイン本体のライセンス（{license}）および利用条件を守ってください。
+・{license}
 ・WordPress / PHP の動作要件: WP {requires_wordpress} / PHP {requires_php}
 
 【更新日】

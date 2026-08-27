@@ -24,7 +24,7 @@ Text Domain: {text_domain}
 
 【注意事項】
 - 対象バージョン以外では表示が崩れる、未翻訳が残る場合があります。
-- プラグインのライセンス（{license}）および公式の利用条件を守ってください。
+- {license}
 - 本ファイルは非公式の日本語化支援です。プラグイン作者・WordPress.org 公式の翻訳プロジェクトとは別物です。
 - WordPress / PHP の動作要件: WP {requires_wordpress} / PHP {requires_php}
 

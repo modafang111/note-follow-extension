@@ -39,7 +39,11 @@ def generate_product_image(plugin_name: str, dest: Path) -> Path | None:
         small_font = _font(36)
         w, h = image.size
         _centered(draw, plugin_name[:40], y=int(h * 0.28), font=title_font, fill=(255, 255, 255), width=w)
-        _centered(draw, "日本語化", y=int(h * 0.48), font=sub_font, fill=(255, 230, 150), width=w)
+        ja_label = "日本語化"
+        try:
+            _centered(draw, ja_label, y=int(h * 0.48), font=sub_font, fill=(255, 230, 150), width=w)
+        except Exception:
+            _centered(draw, "Japanese Localization", y=int(h * 0.48), font=sub_font, fill=(255, 230, 150), width=w)
         _centered(draw, "WordPress Plugin", y=int(h * 0.62), font=small_font, fill=(220, 230, 245), width=w)
         dest.parent.mkdir(parents=True, exist_ok=True)
         image.save(dest, format="PNG")

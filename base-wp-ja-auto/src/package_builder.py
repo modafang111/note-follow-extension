@@ -90,7 +90,7 @@ def _render_sale_readme(info: PluginInfo, analysis: Analysis, files: list[str]) 
         "author": info.author,
         "requires_wordpress": info.requires_wordpress or "不明",
         "requires_php": info.requires_php or "不明",
-        "license": analysis.license or info.license or "プラグイン本体のライセンスに従ってください",
+        "license": analysis.license or info.license or "プラグイン本体のライセンスおよび公式の利用条件を守ってください",
     }
     if template_path.exists():
         text = template_path.read_text(encoding="utf-8")

@@ -173,7 +173,7 @@ def process_url(url: str, options: RunOptions, log_path: Path) -> dict[str, Any]
 
 
 def _stage_info(url: str, slug: str) -> PluginInfo:
-    return fetch_plugin_info(url if "wordpress.org" in url else slug)
+    return fetch_plugin_info(slug)
 
 
 def _run_full(info: PluginInfo, work_dir: Path, options: RunOptions, screenshot_dir: Path) -> dict[str, Any]:
@@ -184,6 +184,10 @@ def _run_full(info: PluginInfo, work_dir: Path, options: RunOptions, screenshot_
     database.upsert_job(info.slug, info.version, stage="unzip", download_url=info.download_url)
 
     analysis = analyze_plugin(info, extracted, work_dir)
+    info.text_domain = analysis.text_domain
+    if analysis.license and not info.license:
+        info.license = analysis.license
+    dump_json(work_dir / "plugin.json", info.to_dict())
     database.upsert_job(info.slug, info.version, plugin_name=info.name, stage="analyzed")
     maybe_skip_already_translated(analysis, options.continue_if_translated)
 

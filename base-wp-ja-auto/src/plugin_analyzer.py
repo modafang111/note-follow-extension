@@ -90,9 +90,13 @@ def analyze_plugin(info: PluginInfo, extracted_dir: Path, work_dir: Path) -> Ana
     text_domain = headers.get("Text Domain") or info.slug
     domain_path = headers.get("Domain Path") or "/languages"
     license_name = headers.get("License") or info.license
+    if not license_name:
+        license_name = _license_from_readme(plugin_root)
     info.text_domain = text_domain
     if not info.license:
         info.license = license_name
+    if not info.requires_php:
+        info.requires_php = headers.get("Requires PHP") or info.requires_php
 
     languages_dir = _resolve_domain_path(plugin_root, domain_path)
     bundled_po = [str(p.relative_to(plugin_root)) for p in plugin_root.rglob("*.po")]
@@ -456,6 +460,21 @@ def _write_generated_pot(work_dir: Path, domain: str, info: PluginInfo, messages
     path = work_dir / f"{domain}.pot"
     po.save(str(path))
     return path
+
+
+def _license_from_readme(plugin_root: Path) -> str:
+    for name in ("readme.txt", "README.txt"):
+        path = plugin_root / name
+        if not path.exists():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")[:8000]
+        except OSError:
+            continue
+        match = re.search(r"^License:\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return ""
 
 
 def _resolve_domain_path(plugin_root: Path, domain_path: str) -> Path | None:

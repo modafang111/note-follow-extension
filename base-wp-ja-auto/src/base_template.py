@@ -108,9 +108,12 @@ def build_listing(info: PluginInfo, sale_zip: Path, image_path: Path | None, wor
     rules = load_or_fetch_template()
     name = _apply_name(rules, info.name)
     detail = _apply_detail(rules, info)
-    if not image_path:
-        generated = work_dir / "product_image.png"
-        image_path = generate_product_image(info.name, generated)
+    resolved_image: Path | None = None
+    if image_path and Path(image_path).exists():
+        resolved_image = Path(image_path)
+    else:
+        generated = generate_product_image(info.name, work_dir / "product_image.png")
+        resolved_image = generated if generated and generated.exists() else None
 
     publish_mode = settings.base_publish_mode
     visible = 1 if publish_mode == "public" else 0
@@ -122,7 +125,7 @@ def build_listing(info: PluginInfo, sale_zip: Path, image_path: Path | None, wor
         "stock": rules.stock if rules.stock > 0 else 10000,
         "category_ids": rules.category_ids,
         "category_names": rules.category_names,
-        "image_path": str(image_path) if image_path else None,
+        "image_path": str(resolved_image) if resolved_image else None,
         "image_public_url": None,
         "sale_file": str(sale_zip),
         "publish_mode": publish_mode,
@@ -251,7 +254,7 @@ def _apply_detail(rules: TemplateRules, info: PluginInfo) -> str:
         "{author}": info.author,
         "{requires_wordpress}": info.requires_wordpress or "不明",
         "{requires_php}": info.requires_php or "不明",
-        "{license}": info.license or "プラグイン本体のライセンスに従ってください",
+        "{license}": info.license or "プラグイン本体のライセンスおよび利用条件を守ってください",
     }
     if rules.detail.strip() and rules.source == "base_api":
         text = rules.detail
