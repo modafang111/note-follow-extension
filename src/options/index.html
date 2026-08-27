@@ -17,15 +17,30 @@
 
       <h2>自動フォロー返し</h2>
       <p>
-        自分のフォロワーを取り込み、まだフォローしていない人を古い順にフォローします。お礼メッセージは下の追加機能です。
+        自分のフォロワーを取り込み、まだフォローしていない人を古い順にフォローします。開始日時を入れて保存すると、その日時から自動で動きます。お礼メッセージは下の追加機能です。
       </p>
       <label class="check">
         <input id="schedule-enabled" type="checkbox" />
-        30分ごとに自動でフォロワーを取り込んでフォロー返しする
+        自動フォロー返しを使う
       </label>
+      <label for="schedule-start">開始日時</label>
+      <input id="schedule-start" type="datetime-local" />
+      <label for="schedule-repeat">繰り返し</label>
+      <select id="schedule-repeat">
+        <option value="once">指定日時に1回だけ</option>
+        <option value="every-30m">30分ごと</option>
+        <option value="hourly">1時間ごと</option>
+        <option value="daily" selected>毎日</option>
+      </select>
       <p class="muted">
-        今すぐ1回やるときは、拡張のポップアップにある「フォロワーを取り込んで開始」を押してください。このチェックを初めてオンにして保存すると、その場で1回取り込み、その後30分ごとです。
+        テスト実行は、誰が対象になるか確認するだけです。実際にはフォローしません。本番はポップアップの「フォロワーを取り込んで開始」か、開始日時どおりの自動実行です。
       </p>
+      <div class="row">
+        <button id="save-btn" type="button">保存</button>
+        <button id="test-btn" type="button" class="secondary">テスト実行</button>
+        <span id="saved" hidden>保存しました</span>
+      </div>
+      <pre id="test-result" class="test-result" hidden></pre>
 
       <h2>手動の urlname リスト</h2>
       <p>
@@ -42,10 +57,6 @@
         placeholder="# 1行1人&#10;example_user&#10;https://note.com/another_user"
       ></textarea>
       <p id="count" class="muted">0 人</p>
-      <div class="row">
-        <button id="save-btn" type="button">保存</button>
-        <span id="saved" hidden>保存しました</span>
-      </div>
 
       <h2>追加機能: フォロー返しのお礼メッセージ</h2>
       <p>
@@ -62,7 +73,7 @@
         placeholder="{nickname}さん&#10;フォローありがとうございます。"
       ></textarea>
       <p class="muted">
-        <code>{nickname}</code> は表示名、<code>{urlname}</code> は ID に置き換わります。相手がメッセージ受信をオフにしている場合は送れません。
+        <code>{nickname}</code> は表示名、<code>{urlname}</code> は ID に置き換わります。相手がメッセージ受信をオフにしている場合は送れません。上の「保存」でリストとお礼設定も一緒に保存されます。
       </p>
     </main>
     <script type="module" src="./options.ts"></script>

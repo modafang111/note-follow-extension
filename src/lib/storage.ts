@@ -1,6 +1,7 @@
 import type {
   JobState,
   PendingThanksFill,
+  ScheduleRepeat,
   ScheduleSettings,
   ThanksItem,
   ThanksSettings,
@@ -107,10 +108,32 @@ export async function addCompletedUrlname(urlname: string): Promise<void> {
   await chrome.storage.local.set({ [COMPLETED_KEY]: [...current, urlname] });
 }
 
+export const DEFAULT_SCHEDULE_SETTINGS: ScheduleSettings = {
+  enabled: false,
+  startAt: "",
+  repeat: "daily",
+};
+
+function isScheduleRepeat(value: unknown): value is ScheduleRepeat {
+  return (
+    value === "once" ||
+    value === "every-30m" ||
+    value === "hourly" ||
+    value === "daily"
+  );
+}
+
 export async function getScheduleSettings(): Promise<ScheduleSettings> {
   const result = await chrome.storage.local.get(SCHEDULE_KEY);
   const stored = result[SCHEDULE_KEY] as Partial<ScheduleSettings> | undefined;
-  return { enabled: Boolean(stored?.enabled) };
+  return {
+    ...DEFAULT_SCHEDULE_SETTINGS,
+    enabled: Boolean(stored?.enabled),
+    startAt: typeof stored?.startAt === "string" ? stored.startAt : "",
+    repeat: isScheduleRepeat(stored?.repeat)
+      ? stored.repeat
+      : DEFAULT_SCHEDULE_SETTINGS.repeat,
+  };
 }
 
 export async function setScheduleSettings(settings: ScheduleSettings): Promise<void> {

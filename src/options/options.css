@@ -51,13 +51,22 @@ label {
   margin: 16px 0 8px;
 }
 
-textarea {
+textarea,
+input[type="datetime-local"],
+select {
   width: 100%;
   padding: 12px;
   font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+textarea {
   resize: vertical;
+}
+
+select {
+  font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
 }
 
 .row {
@@ -88,6 +97,33 @@ button:hover {
 
 a {
   color: var(--green-dark);
+}
+
+.save-row {
+  margin-top: 28px;
+}
+
+button.secondary {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.secondary:hover {
+  background: #f0f2f1;
+}
+
+#saved.error-text {
+  color: #c0392b;
+}
+
+.test-result {
+  margin: 12px 0 0;
+  padding: 12px;
+  background: #f7f8f7;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .check {

@@ -12,11 +12,22 @@ import {
   setScheduleSettings,
   setUrlnamesText,
 } from "./storage";
+import {
+  formatDateTime,
+  formatTestPreview,
+  nextAlarmWhen,
+  parseStartAtMs,
+  REPEAT_MINUTES,
+} from "./schedule-time";
 import { mergeUrlnameText, parseUrlnames } from "./urlnames";
-import type { Follower, ScheduledJobResult, ScheduledJobTrigger } from "../types";
+import type {
+  Follower,
+  ScheduleSettings,
+  ScheduledJobResult,
+  ScheduledJobTrigger,
+} from "../types";
 
 export const SCHEDULE_ALARM = "note-follow-scheduled";
-export const SCHEDULE_PERIOD_MINUTES = 30;
 const MAX_FOLLOWER_PAGES = 80;
 
 async function collectFollowers(urlname: string): Promise<Follower[]> {
@@ -29,21 +40,54 @@ async function collectFollowers(urlname: string): Promise<Follower[]> {
   return all;
 }
 
-export async function runScheduledFollowBack(
-  trigger: ScheduledJobTrigger,
-): Promise<ScheduledJobResult> {
-  const me = await fetchCurrentUser();
-  const followers = await collectFollowers(me.urlname);
+function orderFollowersOldestFirst(followers: Follower[]): Follower[] {
   const newestFirst = followers.map((follower) => follower.urlname);
   const oldestFirst = new Set(orderFollowerUrlnamesOldestFirst(newestFirst));
-  const orderedFollowers = [...oldestFirst].map((urlname) => {
+  return [...oldestFirst].map((urlname) => {
     const found = followers.find((follower) => follower.urlname === urlname);
     return found ?? { urlname, isFollowing: false };
   });
+}
 
+async function collectFollowBackTargets(): Promise<string[]> {
+  const me = await fetchCurrentUser();
+  const followers = await collectFollowers(me.urlname);
   const completed = await getCompletedUrlnames();
-  const completedSet = new Set(completed.map((name) => name.toLowerCase()));
-  const importedNames = filterFollowerUrlnames(orderedFollowers, completed);
+  return filterFollowerUrlnames(orderFollowersOldestFirst(followers), completed);
+}
+
+export async function runTestFollowBack(): Promise<ScheduledJobResult> {
+  const importedNames = await collectFollowBackTargets();
+  const message = formatTestPreview(importedNames);
+  await appendJobInfo(
+    `テスト実行: 対象 ${importedNames.length} 人。実際のフォローはしていません。`,
+  );
+  for (const urlname of importedNames.slice(0, 15)) {
+    await appendJobInfo(`テスト対象: ${urlname}`);
+  }
+  if (importedNames.length > 15) {
+    await appendJobInfo(`テスト対象: ほか ${importedNames.length - 15} 人`);
+  }
+  return {
+    trigger: "test",
+    imported: importedNames.length,
+    started: false,
+    message,
+  };
+}
+
+export async function runScheduledFollowBack(
+  trigger: ScheduledJobTrigger,
+): Promise<ScheduledJobResult> {
+  if (trigger === "alarm") {
+    const settings = await getScheduleSettings();
+    if (settings.repeat === "once") {
+      await setScheduleSettings({ ...settings, enabled: false });
+      await chrome.alarms.clear(SCHEDULE_ALARM);
+    }
+  }
+
+  const importedNames = await collectFollowBackTargets();
   const existing = await getUrlnamesText();
   const existingNames = new Set(
     parseUrlnames(existing).map((name) => name.toLowerCase()),
@@ -56,6 +100,8 @@ export async function runScheduledFollowBack(
     await setUrlnamesText(merged);
   }
 
+  const completed = await getCompletedUrlnames();
+  const completedSet = new Set(completed.map((name) => name.toLowerCase()));
   const pending = parseUrlnames(merged).filter(
     (name) => !completedSet.has(name.toLowerCase()),
   );
@@ -105,37 +151,59 @@ export async function runScheduledFollowBack(
   }
 }
 
-export async function setScheduleEnabled(enabled: boolean): Promise<void> {
-  const previous = await getScheduleSettings();
-  await setScheduleSettings({ enabled });
-  await chrome.alarms.clear(SCHEDULE_ALARM);
-  if (!enabled) return;
-
-  await chrome.alarms.create(SCHEDULE_ALARM, {
-    periodInMinutes: SCHEDULE_PERIOD_MINUTES,
-    delayInMinutes: SCHEDULE_PERIOD_MINUTES,
-  });
-  if (previous.enabled) return;
-
-  try {
-    await runScheduledFollowBack("manual");
-  } catch (error) {
-    const text = error instanceof Error ? error.message : String(error);
-    await appendJobInfo(`自動フォロー返しの開始に失敗しました: ${text}`);
+export async function applySchedule(settings: ScheduleSettings): Promise<void> {
+  if (settings.enabled) {
+    const startMs = parseStartAtMs(settings.startAt);
+    if (startMs == null) {
+      throw new Error("自動フォローの開始日時を入力してください");
+    }
+    if (settings.repeat === "once" && startMs <= Date.now()) {
+      throw new Error(
+        "1回だけのときは、未来の日時を入力してください。今すぐ確認するならテスト実行を押してください。",
+      );
+    }
   }
+
+  await setScheduleSettings(settings);
+  await createScheduleAlarm(settings);
+}
+
+async function createScheduleAlarm(settings: ScheduleSettings): Promise<void> {
+  await chrome.alarms.clear(SCHEDULE_ALARM);
+  if (!settings.enabled) return;
+
+  const startMs = parseStartAtMs(settings.startAt);
+  if (startMs == null) return;
+  const when = nextAlarmWhen(startMs, Date.now(), settings.repeat);
+  if (when == null) return;
+
+  if (settings.repeat === "once") {
+    await chrome.alarms.create(SCHEDULE_ALARM, { when });
+    return;
+  }
+  await chrome.alarms.create(SCHEDULE_ALARM, {
+    when,
+    periodInMinutes: REPEAT_MINUTES[settings.repeat],
+  });
 }
 
 export async function restoreScheduleAlarm(): Promise<void> {
-  const { enabled } = await getScheduleSettings();
-  if (!enabled) {
-    await chrome.alarms.clear(SCHEDULE_ALARM);
-    return;
+  await createScheduleAlarm(await getScheduleSettings());
+}
+
+export async function getScheduleStatus(): Promise<{
+  settings: ScheduleSettings;
+  nextLabel: string;
+}> {
+  const settings = await getScheduleSettings();
+  const alarm = await chrome.alarms.get(SCHEDULE_ALARM);
+  let nextLabel = "未設定";
+  if (!settings.enabled) {
+    nextLabel = "オフ";
+  } else if (alarm?.scheduledTime) {
+    nextLabel = formatDateTime(alarm.scheduledTime);
+  } else if (settings.startAt) {
+    nextLabel = "開始日時を保存し直してください";
   }
-  const existing = await chrome.alarms.get(SCHEDULE_ALARM);
-  if (!existing) {
-    await chrome.alarms.create(SCHEDULE_ALARM, {
-      periodInMinutes: SCHEDULE_PERIOD_MINUTES,
-      delayInMinutes: SCHEDULE_PERIOD_MINUTES,
-    });
-  }
+  return { settings, nextLabel };
 }

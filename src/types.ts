@@ -59,7 +59,7 @@ export type FollowersPage = {
   totalCount: number;
 };
 
-export type ScheduledJobTrigger = "manual" | "alarm" | "startup";
+export type ScheduledJobTrigger = "manual" | "alarm" | "startup" | "test";
 
 export type ScheduledJobResult = {
   trigger: ScheduledJobTrigger;
@@ -68,8 +68,12 @@ export type ScheduledJobResult = {
   message: string;
 };
 
+export type ScheduleRepeat = "once" | "every-30m" | "hourly" | "daily";
+
 export type ScheduleSettings = {
   enabled: boolean;
+  startAt: string;
+  repeat: ScheduleRepeat;
 };
 
 export type Creator = {
@@ -89,8 +93,9 @@ export type RuntimeMessage =
   | { type: "OPEN_NEXT_THANKS" }
   | { type: "SKIP_THANKS" }
   | { type: "IMPORT_FOLLOWERS" }
+  | { type: "TEST_FOLLOW" }
   | { type: "GET_SCHEDULE" }
-  | { type: "SET_SCHEDULE"; enabled: boolean };
+  | { type: "SET_SCHEDULE"; settings: ScheduleSettings };
 
 export type RuntimeResponse = {
   ok: boolean;
@@ -100,5 +105,7 @@ export type RuntimeResponse = {
   thanksPreview?: string;
   thanksOpenedBody?: string;
   scheduled?: ScheduledJobResult;
+  schedule?: ScheduleSettings;
   scheduleEnabled?: boolean;
+  scheduleNextLabel?: string;
 };

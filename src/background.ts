@@ -1,12 +1,24 @@
 import { appendJobInfo, FOLLOW_ALARM, handleMessage, processNext, resumeIfNeeded } from "./lib/job";
 import {
+  applySchedule,
+  getScheduleStatus,
   restoreScheduleAlarm,
   runScheduledFollowBack,
+  runTestFollowBack,
   SCHEDULE_ALARM,
-  setScheduleEnabled,
 } from "./lib/schedule";
-import { getJob, getScheduleSettings } from "./lib/storage";
+import { getJob } from "./lib/storage";
 import type { RuntimeMessage, RuntimeResponse } from "./types";
+
+async function scheduleResponse(): Promise<RuntimeResponse> {
+  const { settings, nextLabel } = await getScheduleStatus();
+  return {
+    ok: true,
+    schedule: settings,
+    scheduleEnabled: settings.enabled,
+    scheduleNextLabel: nextLabel,
+  };
+}
 
 async function dispatch(message: RuntimeMessage): Promise<RuntimeResponse> {
   try {
@@ -14,13 +26,16 @@ async function dispatch(message: RuntimeMessage): Promise<RuntimeResponse> {
       const scheduled = await runScheduledFollowBack("manual");
       return { ok: true, scheduled, job: await getJob() };
     }
+    if (message.type === "TEST_FOLLOW") {
+      const scheduled = await runTestFollowBack();
+      return { ok: true, scheduled, job: await getJob() };
+    }
     if (message.type === "GET_SCHEDULE") {
-      const { enabled } = await getScheduleSettings();
-      return { ok: true, scheduleEnabled: enabled };
+      return scheduleResponse();
     }
     if (message.type === "SET_SCHEDULE") {
-      await setScheduleEnabled(message.enabled);
-      return { ok: true, scheduleEnabled: message.enabled };
+      await applySchedule(message.settings);
+      return scheduleResponse();
     }
     return handleMessage(message);
   } catch (error) {

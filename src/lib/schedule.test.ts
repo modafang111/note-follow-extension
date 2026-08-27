@@ -3,14 +3,15 @@ import { mergeUrlnameText } from "./urlnames";
 import type { ScheduledJobResult } from "../types";
 
 describe("ScheduledJobResult shape", () => {
-  it("carries import and start flags", () => {
+  it("carries import, start, and test trigger flags", () => {
     const result: ScheduledJobResult = {
-      trigger: "manual",
+      trigger: "test",
       imported: 2,
-      started: true,
+      started: false,
       message: "ok",
     };
-    expect(result.imported).toBe(2);
+    expect(result.trigger).toBe("test");
+    expect(result.started).toBe(false);
     expect(mergeUrlnameText("a\n", ["b"])).toContain("b");
   });
 });
