@@ -2,6 +2,8 @@ import type { JobLog, JobState, RuntimeMessage, RuntimeResponse } from "../types
 import { assertLoggedIn, fetchCreator, followUser, NoteApiError } from "./note-api";
 import {
   EMPTY_JOB,
+  addCompletedUrlname,
+  getCompletedUrlnames,
   getJob,
   getThanksQueue,
   getThanksSettings,
@@ -22,15 +24,26 @@ function prependLog(job: JobState, log: Omit<JobLog, "at">): void {
   job.logs = [{ ...log, at: Date.now() }, ...job.logs].slice(0, MAX_LOGS);
 }
 
+export async function appendJobInfo(message: string): Promise<void> {
+  const job = await getJob();
+  prependLog(job, { urlname: "", status: "info", message });
+  await setJob(job);
+}
+
 export async function startFollowJob(): Promise<JobState> {
   const current = await getJob();
   if (current.status === "running") {
     return current;
   }
 
-  const urlnames = parseUrlnames(await getUrlnamesText());
+  const completed = new Set(
+    (await getCompletedUrlnames()).map((name) => name.toLowerCase()),
+  );
+  const urlnames = parseUrlnames(await getUrlnamesText()).filter(
+    (name) => !completed.has(name.toLowerCase()),
+  );
   if (urlnames.length === 0) {
-    throw new Error("フォロー対象の urlname がありません。オプションで入力してください。");
+    throw new Error("フォロー対象の urlname がありません。オプションで入力するか、フォロワーを取り込んでください。");
   }
 
   await chrome.alarms.clear(FOLLOW_ALARM);
@@ -50,6 +63,32 @@ export async function startFollowJob(): Promise<JobState> {
   await setJob(job);
   await processNext();
   return getJob();
+}
+
+export async function appendToRunningQueue(urlnames: string[]): Promise<number> {
+  const job = await getJob();
+  if (job.status !== "running") return 0;
+
+  const have = new Set(
+    [...job.queue, job.current ?? ""].map((name) => name.toLowerCase()).filter(Boolean),
+  );
+  const extra = urlnames.filter((name) => {
+    const key = name.trim().toLowerCase();
+    if (!key || have.has(key)) return false;
+    have.add(key);
+    return true;
+  });
+  if (extra.length === 0) return 0;
+
+  job.queue.push(...extra);
+  job.total += extra.length;
+  prependLog(job, {
+    urlname: "",
+    status: "info",
+    message: `実行中のキューに ${extra.length} 人を追加しました`,
+  });
+  await setJob(job);
+  return extra.length;
 }
 
 export async function stopFollowJob(): Promise<JobState> {
@@ -104,6 +143,7 @@ export async function processNext(): Promise<void> {
           status: "skipped",
           message: "既にフォロー済みのためスキップ",
         });
+        await addCompletedUrlname(urlname);
       } else if (action === "skip-myself") {
         job.skipped += 1;
         prependLog(job, {
@@ -111,6 +151,7 @@ export async function processNext(): Promise<void> {
           status: "skipped",
           message: "自分自身のためスキップ",
         });
+        await addCompletedUrlname(urlname);
       } else {
         await followUser(creator.key);
         job.followed += 1;
@@ -131,6 +172,7 @@ export async function processNext(): Promise<void> {
             }),
           );
         }
+        await addCompletedUrlname(urlname);
       }
     } catch (error) {
       job.failed += 1;

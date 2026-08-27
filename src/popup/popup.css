@@ -77,6 +77,10 @@ h2 {
   gap: 8px;
 }
 
+.actions + .actions {
+  margin-top: 8px;
+}
+
 button {
   flex: 1;
   border: 0;

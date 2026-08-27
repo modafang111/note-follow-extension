@@ -1,5 +1,6 @@
 import type { JobState, RuntimeMessage, RuntimeResponse, ThanksItem } from "../types";
 
+const importBtn = document.querySelector<HTMLButtonElement>("#import-btn")!;
 const startBtn = document.querySelector<HTMLButtonElement>("#start-btn")!;
 const stopBtn = document.querySelector<HTMLButtonElement>("#stop-btn")!;
 const optionsBtn = document.querySelector<HTMLButtonElement>("#options-btn")!;
@@ -34,6 +35,7 @@ function render(job: JobState, error?: string): void {
   statusBadge.className = `badge ${job.status}`;
 
   const running = job.status === "running";
+  importBtn.disabled = running;
   startBtn.disabled = running;
   stopBtn.disabled = !running;
 
@@ -89,13 +91,31 @@ async function refresh(): Promise<void> {
   renderThanks(thanksRes.thanksQueue ?? [], thanksRes.thanksPreview ?? "");
 }
 
+importBtn.addEventListener("click", () => {
+  void (async () => {
+    importBtn.disabled = true;
+    startBtn.disabled = true;
+    const res = await send({ type: "IMPORT_FOLLOWERS" });
+    const job = res.job ?? (await send({ type: "GET_JOB" })).job;
+    if (job) render(job, res.ok ? undefined : res.error);
+    else {
+      importBtn.disabled = false;
+      startBtn.disabled = false;
+    }
+  })();
+});
+
 startBtn.addEventListener("click", () => {
   void (async () => {
     startBtn.disabled = true;
+    importBtn.disabled = true;
     const res = await send({ type: "START_FOLLOW" });
     const job = res.job ?? (await send({ type: "GET_JOB" })).job;
     if (job) render(job, res.ok ? undefined : res.error);
-    else startBtn.disabled = false;
+    else {
+      startBtn.disabled = false;
+      importBtn.disabled = false;
+    }
   })();
 });
 

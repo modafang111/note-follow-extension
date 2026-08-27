@@ -40,6 +40,38 @@ export type JobState = {
 
 export type FollowDecision = "follow" | "skip-following" | "skip-myself";
 
+export type CurrentUser = {
+  id: number;
+  key: string;
+  urlname: string;
+  nickname?: string;
+};
+
+export type Follower = {
+  urlname: string;
+  nickname?: string;
+  isFollowing: boolean;
+};
+
+export type FollowersPage = {
+  follows: Follower[];
+  isLastPage: boolean;
+  totalCount: number;
+};
+
+export type ScheduledJobTrigger = "manual" | "alarm" | "startup";
+
+export type ScheduledJobResult = {
+  trigger: ScheduledJobTrigger;
+  imported: number;
+  started: boolean;
+  message: string;
+};
+
+export type ScheduleSettings = {
+  enabled: boolean;
+};
+
 export type Creator = {
   id: number;
   key: string;
@@ -55,7 +87,10 @@ export type RuntimeMessage =
   | { type: "GET_JOB" }
   | { type: "GET_THANKS" }
   | { type: "OPEN_NEXT_THANKS" }
-  | { type: "SKIP_THANKS" };
+  | { type: "SKIP_THANKS" }
+  | { type: "IMPORT_FOLLOWERS" }
+  | { type: "GET_SCHEDULE" }
+  | { type: "SET_SCHEDULE"; enabled: boolean };
 
 export type RuntimeResponse = {
   ok: boolean;
@@ -64,4 +99,6 @@ export type RuntimeResponse = {
   thanksQueue?: ThanksItem[];
   thanksPreview?: string;
   thanksOpenedBody?: string;
+  scheduled?: ScheduledJobResult;
+  scheduleEnabled?: boolean;
 };

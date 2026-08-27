@@ -3,16 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>フォロー対象の設定</title>
+    <title>フォロー設定</title>
     <link rel="stylesheet" href="./options.css" />
   </head>
   <body>
     <main>
-      <h1>フォロー対象の urlname</h1>
+      <h1>フォロー設定</h1>
       <p>
-        1行に1人ずつ入力してください。Chrome で
+        Chrome で
         <a href="https://note.com/" target="_blank" rel="noreferrer">note.com</a>
         にログイン済みであれば、その Cookie セッションを使います。パスワードは保存しません。
+      </p>
+
+      <h2>自動フォロー返し</h2>
+      <p>
+        自分のフォロワーを取り込み、まだフォローしていない人を古い順にフォローします。お礼メッセージは下の追加機能です。
+      </p>
+      <label class="check">
+        <input id="schedule-enabled" type="checkbox" />
+        30分ごとに自動でフォロワーを取り込んでフォロー返しする
+      </label>
+      <p class="muted">
+        今すぐ1回やるときは、拡張のポップアップにある「フォロワーを取り込んで開始」を押してください。このチェックを初めてオンにして保存すると、その場で1回取り込み、その後30分ごとです。
+      </p>
+
+      <h2>手動の urlname リスト</h2>
+      <p>
+        自動取り込み以外に、フォローしたい人を 1 行に 1 人ずつ書けます。
       </p>
       <p class="muted">
         例: <code>fuji1080</code> / <code>https://note.com/fuji1080</code> /
@@ -30,7 +47,7 @@
         <span id="saved" hidden>保存しました</span>
       </div>
 
-      <h2>フォロー返しのお礼メッセージ</h2>
+      <h2>追加機能: フォロー返しのお礼メッセージ</h2>
       <p>
         フォローに成功した相手をキューに入れ、ポップアップから 1 人ずつ note.com のメッセージ画面を開きます。送信 API は非公開のため、本文の下書きまで行い、<strong>送信は自分で確定</strong>します。
       </p>

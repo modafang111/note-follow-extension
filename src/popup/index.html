@@ -13,11 +13,14 @@
     </header>
 
     <p class="hint">
-      パスワードは使いません。Chrome で note.com にログインした Cookie を利用します。
+      パスワードは使いません。Chrome で note.com にログインした Cookie を利用します。フォローしてくれた人を取り込み、まだ返していない相手をフォローします。
     </p>
 
     <div class="actions">
-      <button id="start-btn" type="button">フォロー開始</button>
+      <button id="import-btn" type="button">フォロワーを取り込んで開始</button>
+    </div>
+    <div class="actions">
+      <button id="start-btn" type="button" class="secondary">リストから開始</button>
       <button id="stop-btn" type="button" class="secondary" disabled>停止</button>
     </div>
 
@@ -57,7 +60,7 @@
     </section>
 
     <footer>
-      <button id="options-btn" type="button" class="link">対象リストを編集</button>
+      <button id="options-btn" type="button" class="link">自動フォローと対象リストを設定</button>
     </footer>
 
     <script type="module" src="./popup.ts"></script>
