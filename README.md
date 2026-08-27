@@ -78,15 +78,12 @@ npm test
 
 ## Cloud Agent のブランチを手元に取り込む
 
-Windows ではリポジトリを開いていなくても実行できます。API キーはチャットに貼らず、環境変数で渡してください。キーは [Cursor Dashboard → API Keys](https://cursor.com/dashboard/api) で発行します。
+Windows では `D:\dev\sync-cloud-agents.bat` をダブルクリックしてください。初回はリポジトリの `scripts\sync-cloud-agents.bat` でも同じです。API キーはチャットに貼らず、バッチが聞いたらコンソールに入力します。キーは [Cursor Dashboard → API Keys](https://cursor.com/dashboard/api) で発行します。
 
-PowerShell（推奨）:
-
-```powershell
-$env:CURSOR_API_KEY = "（発行したキー）"
-powershell -ExecutionPolicy Bypass -File D:\dev\note-follow-extension\scripts\sync-cloud-agents.ps1
+```bat
+D:\dev\note-follow-extension\scripts\sync-cloud-agents.bat
 ```
 
-配置先は `D:\dev` です。リポジトリが無ければ `D:\dev\note-follow-extension` にクローンし、ブランチは `D:\dev\cursor-cloud-worktrees\note-follow-extension\` 配下の worktree に並べます。今の作業ブランチは切り替えません。変更する場合は `-DevRoot` か環境変数 `CURSOR_SYNC_ROOT` を使います。
+配置先は `D:\dev` です。リポジトリが無ければ `D:\dev\note-follow-extension` にクローンし、ブランチは `D:\dev\cursor-cloud-worktrees\note-follow-extension\` 配下の worktree に並べます。今の作業ブランチは切り替えません。変更する場合は環境変数 `CURSOR_SYNC_ROOT` を使います。
 
 会話ごとローカル Agent に移す操作（Move to Local）はこのスクリプトではできません。コードの取り込みだけです。
