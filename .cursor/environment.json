@@ -1,0 +1,4 @@
+{
+  "name": "note-follow-extension",
+  "install": "npm ci"
+}
