@@ -38,14 +38,16 @@ note.com に **手動ログイン済み** の Chrome セッション（Cookie）
 
 ## ビルド
 
-リポジトリをクローンしたディレクトリで:
+Windows では、フォルダ内の **`更新.bat`**（同じ内容の `update.bat` でも可）をダブルクリックすると、`git pull` → `npm install` → `npm run build` までまとめて実行します。終わったら Chrome の `chrome://extensions` で拡張を **再読み込み** してください。
+
+コマンドで自分でやる場合:
 
 ```bash
 npm install
 npm run build
 ```
 
-Windows のコマンドプロンプトでも同じです。成果物は `dist/` に出力されます。
+成果物は `dist/` に出力されます。
 
 ## Chrome への読み込み（ローカル）
 
