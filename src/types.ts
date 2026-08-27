@@ -9,6 +9,22 @@ export type JobLog = {
   at: number;
 };
 
+export type ThanksItem = {
+  urlname: string;
+  nickname: string;
+  queuedAt: number;
+};
+
+export type ThanksSettings = {
+  enabled: boolean;
+  template: string;
+};
+
+export type PendingThanksFill = {
+  urlname: string;
+  body: string;
+};
+
 export type JobState = {
   status: JobStatus;
   queue: string[];
@@ -36,10 +52,16 @@ export type Creator = {
 export type RuntimeMessage =
   | { type: "START_FOLLOW" }
   | { type: "STOP_FOLLOW" }
-  | { type: "GET_JOB" };
+  | { type: "GET_JOB" }
+  | { type: "GET_THANKS" }
+  | { type: "OPEN_NEXT_THANKS" }
+  | { type: "SKIP_THANKS" };
 
 export type RuntimeResponse = {
   ok: boolean;
   error?: string;
   job?: JobState;
+  thanksQueue?: ThanksItem[];
+  thanksPreview?: string;
+  thanksOpenedBody?: string;
 };

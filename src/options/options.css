@@ -32,6 +32,11 @@ h1 {
   font-size: 22px;
 }
 
+h2 {
+  margin: 32px 0 12px;
+  font-size: 18px;
+}
+
 p {
   line-height: 1.6;
 }
@@ -83,4 +88,17 @@ button:hover {
 
 a {
   color: var(--green-dark);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin: 12px 0;
+}
+
+.check input {
+  width: 16px;
+  height: 16px;
 }
