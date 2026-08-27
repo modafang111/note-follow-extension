@@ -23,7 +23,7 @@ export async function notifyPopup(title: string, message: string): Promise<void>
   try {
     await chrome.notifications.create(`note-follow-${Date.now()}`, {
       type: "basic",
-      iconUrl: "icons/icon128.png",
+      iconUrl: chrome.runtime.getURL("icons/icon128.png"),
       title,
       message,
       priority: 2,
