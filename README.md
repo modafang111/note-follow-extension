@@ -75,3 +75,18 @@ npm run build
 ```bash
 npm test
 ```
+
+## Cloud Agent のブランチを手元に取り込む
+
+Windows ではリポジトリを開いていなくても実行できます。API キーはチャットに貼らず、環境変数で渡してください。キーは [Cursor Dashboard → API Keys](https://cursor.com/dashboard/api) で発行します。
+
+PowerShell（推奨）:
+
+```powershell
+$env:CURSOR_API_KEY = "（発行したキー）"
+powershell -ExecutionPolicy Bypass -File .\scripts\sync-cloud-agents.ps1
+```
+
+ホームディレクトリ `C:\Users\user` からでも動きます。リポジトリが無ければ `~\note-follow-extension` にクローンし、ブランチは `~\cursor-cloud-worktrees\note-follow-extension\` 配下の worktree に並べます。今の作業ブランチは切り替えません。
+
+会話ごとローカル Agent に移す操作（Move to Local）はこのスクリプトではできません。コードの取り込みだけです。
