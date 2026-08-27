@@ -29,6 +29,24 @@
         <button id="save-btn" type="button">保存</button>
         <span id="saved" hidden>保存しました</span>
       </div>
+
+      <h2>フォロー返しのお礼メッセージ</h2>
+      <p>
+        フォローに成功した相手をキューに入れ、ポップアップから 1 人ずつ note.com のメッセージ画面を開きます。送信 API は非公開のため、本文の下書きまで行い、<strong>送信は自分で確定</strong>します。
+      </p>
+      <label class="check">
+        <input id="thanks-enabled" type="checkbox" />
+        フォロー後にお礼メッセージを用意する
+      </label>
+      <label for="thanks-template">お礼文（定型）</label>
+      <textarea
+        id="thanks-template"
+        rows="6"
+        placeholder="{nickname}さん&#10;フォローありがとうございます。"
+      ></textarea>
+      <p class="muted">
+        <code>{nickname}</code> は表示名、<code>{urlname}</code> は ID に置き換わります。相手がメッセージ受信をオフにしている場合は送れません。
+      </p>
     </main>
     <script type="module" src="./options.ts"></script>
   </body>

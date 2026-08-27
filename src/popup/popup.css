@@ -220,3 +220,18 @@ dd {
 footer {
   margin-top: 12px;
 }
+
+.thanks-preview {
+  margin: 8px 0 12px;
+  padding: 10px;
+  background: #f7f8f7;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  max-height: 90px;
+  overflow: auto;
+}
+
+.muted {
+  color: var(--muted);
+}

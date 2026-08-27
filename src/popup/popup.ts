@@ -1,4 +1,4 @@
-import type { JobState, RuntimeMessage, RuntimeResponse } from "../types";
+import type { JobState, RuntimeMessage, RuntimeResponse, ThanksItem } from "../types";
 
 const startBtn = document.querySelector<HTMLButtonElement>("#start-btn")!;
 const stopBtn = document.querySelector<HTMLButtonElement>("#stop-btn")!;
@@ -12,6 +12,11 @@ const skippedEl = document.querySelector<HTMLElement>("#skipped")!;
 const failedEl = document.querySelector<HTMLElement>("#failed")!;
 const logList = document.querySelector<HTMLUListElement>("#log-list")!;
 const errorEl = document.querySelector<HTMLElement>("#error")!;
+const thanksBlock = document.querySelector<HTMLElement>("#thanks-block")!;
+const thanksMeta = document.querySelector<HTMLElement>("#thanks-meta")!;
+const thanksPreview = document.querySelector<HTMLElement>("#thanks-preview")!;
+const thanksOpen = document.querySelector<HTMLButtonElement>("#thanks-open")!;
+const thanksSkip = document.querySelector<HTMLButtonElement>("#thanks-skip")!;
 
 const STATUS_LABEL: Record<JobState["status"], string> = {
   idle: "待機中",
@@ -67,9 +72,21 @@ function render(job: JobState, error?: string): void {
   }
 }
 
+function renderThanks(queue: ThanksItem[], preview: string): void {
+  const next = queue[0];
+  thanksBlock.hidden = !next;
+  if (!next) return;
+  thanksMeta.textContent = `次: ${next.nickname} (@${next.urlname})　残り ${queue.length} 人`;
+  thanksPreview.textContent = preview;
+}
+
 async function refresh(): Promise<void> {
-  const res = await send({ type: "GET_JOB" });
-  if (res.job) render(res.job, res.error);
+  const [jobRes, thanksRes] = await Promise.all([
+    send({ type: "GET_JOB" }),
+    send({ type: "GET_THANKS" }),
+  ]);
+  if (jobRes.job) render(jobRes.job, jobRes.error);
+  renderThanks(thanksRes.thanksQueue ?? [], thanksRes.thanksPreview ?? "");
 }
 
 startBtn.addEventListener("click", () => {
@@ -89,14 +106,42 @@ stopBtn.addEventListener("click", () => {
   })();
 });
 
+thanksOpen.addEventListener("click", () => {
+  void (async () => {
+    const current = thanksPreview.textContent ?? "";
+    try {
+      if (current) await navigator.clipboard.writeText(current);
+    } catch {
+      // コピーに失敗しても画面オープンは続ける
+    }
+    const res = await send({ type: "OPEN_NEXT_THANKS" });
+    renderThanks(res.thanksQueue ?? [], res.thanksPreview ?? "");
+    if (!res.ok && res.error) {
+      errorEl.hidden = false;
+      errorEl.textContent = res.error;
+    }
+  })();
+});
+
+thanksSkip.addEventListener("click", () => {
+  void (async () => {
+    const res = await send({ type: "SKIP_THANKS" });
+    renderThanks(res.thanksQueue ?? [], res.thanksPreview ?? "");
+  })();
+});
+
 optionsBtn.addEventListener("click", () => {
   void chrome.runtime.openOptionsPage();
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local" || !changes.job) return;
-  const job = changes.job.newValue as JobState | undefined;
-  if (job) render(job);
+  if (area !== "local") return;
+  if (changes.job?.newValue) {
+    render(changes.job.newValue as JobState);
+  }
+  if (changes.thanksQueue) {
+    void refresh();
+  }
 });
 
 void refresh();

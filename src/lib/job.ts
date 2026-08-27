@@ -1,7 +1,17 @@
 import type { JobLog, JobState, RuntimeMessage, RuntimeResponse } from "../types";
 import { assertLoggedIn, fetchCreator, followUser, NoteApiError } from "./note-api";
-import { EMPTY_JOB, getJob, getUrlnamesText, setJob } from "./storage";
+import {
+  EMPTY_JOB,
+  getJob,
+  getThanksQueue,
+  getThanksSettings,
+  getUrlnamesText,
+  setJob,
+  setThanksQueue,
+} from "./storage";
+import { enqueueThanks } from "./thanks";
 import { decideFollowAction, parseUrlnames, randomDelayMs } from "./urlnames";
+import { getThanksState, openNextThanks, skipNextThanks } from "./thanks-actions";
 
 export const FOLLOW_ALARM = "note-follow-next";
 const MAX_LOGS = 80;
@@ -111,6 +121,16 @@ export async function processNext(): Promise<void> {
             ? `${creator.nickname} をフォローしました`
             : "フォローしました",
         });
+        const thanks = await getThanksSettings();
+        if (thanks.enabled) {
+          const queue = await getThanksQueue();
+          await setThanksQueue(
+            enqueueThanks(queue, {
+              urlname: creator.urlname || urlname,
+              nickname: creator.nickname || urlname,
+            }),
+          );
+        }
       }
     } catch (error) {
       job.failed += 1;
@@ -173,6 +193,16 @@ export async function handleMessage(
     }
     if (message.type === "STOP_FOLLOW") {
       return { ok: true, job: await stopFollowJob() };
+    }
+    if (message.type === "GET_THANKS") {
+      const state = await getThanksState();
+      return { ok: true, thanksQueue: state.queue, thanksPreview: state.preview };
+    }
+    if (message.type === "OPEN_NEXT_THANKS") {
+      return openNextThanks();
+    }
+    if (message.type === "SKIP_THANKS") {
+      return skipNextThanks();
     }
     return { ok: false, error: "不明なメッセージです" };
   } catch (error) {
