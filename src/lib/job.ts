@@ -5,15 +5,12 @@ import {
   addCompletedUrlname,
   getCompletedUrlnames,
   getJob,
-  getThanksQueue,
-  getThanksSettings,
   getUrlnamesText,
   setJob,
-  setThanksQueue,
 } from "./storage";
-import { enqueueThanks } from "./thanks";
 import { decideFollowAction, parseUrlnames, randomDelayMs } from "./urlnames";
 import { getThanksState, openNextThanks, skipNextThanks } from "./thanks-actions";
+import { queueAndDeliverThanks } from "./thanks-delivery";
 
 export const FOLLOW_ALARM = "note-follow-next";
 const MAX_LOGS = 80;
@@ -162,16 +159,10 @@ export async function processNext(): Promise<void> {
             ? `${creator.nickname} をフォローしました`
             : "フォローしました",
         });
-        const thanks = await getThanksSettings();
-        if (thanks.enabled) {
-          const queue = await getThanksQueue();
-          await setThanksQueue(
-            enqueueThanks(queue, {
-              urlname: creator.urlname || urlname,
-              nickname: creator.nickname || urlname,
-            }),
-          );
-        }
+        await queueAndDeliverThanks({
+          urlname: creator.urlname || urlname,
+          nickname: creator.nickname || urlname,
+        });
         await addCompletedUrlname(urlname);
       }
     } catch (error) {

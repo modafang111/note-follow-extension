@@ -30,6 +30,11 @@ export function enqueueThanks(
   return [...queue, { ...item, queuedAt: now }];
 }
 
+export function isThanksSendLabel(label: string): boolean {
+  const text = label.replace(/\s+/g, " ").trim();
+  return text === "送信" || text === "送る" || text === "Send";
+}
+
 export function shiftThanks(queue: ThanksItem[]): {
   next: ThanksItem | undefined;
   rest: ThanksItem[];

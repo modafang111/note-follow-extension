@@ -95,7 +95,8 @@ export type RuntimeMessage =
   | { type: "IMPORT_FOLLOWERS" }
   | { type: "TEST_FOLLOW" }
   | { type: "GET_SCHEDULE" }
-  | { type: "SET_SCHEDULE"; settings: ScheduleSettings };
+  | { type: "SET_SCHEDULE"; settings: ScheduleSettings }
+  | { type: "THANKS_FILL_RESULT"; sent: boolean; error?: string };
 
 export type RuntimeResponse = {
   ok: boolean;
@@ -104,6 +105,7 @@ export type RuntimeResponse = {
   thanksQueue?: ThanksItem[];
   thanksPreview?: string;
   thanksOpenedBody?: string;
+  thanksTabId?: number;
   scheduled?: ScheduledJobResult;
   schedule?: ScheduleSettings;
   scheduleEnabled?: boolean;

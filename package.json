@@ -1,6 +1,6 @@
 {
   "name": "note-follow-extension",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Chrome extension to follow back note.com followers using the logged-in cookie session",
   "type": "module",

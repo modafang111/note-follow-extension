@@ -7,6 +7,7 @@ import {
   runTestFollowBack,
   SCHEDULE_ALARM,
 } from "./lib/schedule";
+import { resolveThanksFill, resumeThanksDelivery } from "./lib/thanks-delivery";
 import { getJob } from "./lib/storage";
 import type { RuntimeMessage, RuntimeResponse } from "./types";
 
@@ -47,7 +48,15 @@ async function dispatch(message: RuntimeMessage): Promise<RuntimeResponse> {
   }
 }
 
-chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendResponse) => {
+  if (message.type === "THANKS_FILL_RESULT") {
+    resolveThanksFill(sender.tab?.id, {
+      sent: message.sent,
+      error: message.error,
+    });
+    sendResponse({ ok: true });
+    return false;
+  }
   void dispatch(message).then(sendResponse);
   return true;
 });
@@ -68,12 +77,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onInstalled.addListener(() => {
   void resumeIfNeeded();
   void restoreScheduleAlarm();
+  void resumeThanksDelivery();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void resumeIfNeeded();
   void restoreScheduleAlarm();
+  void resumeThanksDelivery();
 });
 
 void resumeIfNeeded();
 void restoreScheduleAlarm();
+void resumeThanksDelivery();

@@ -1,4 +1,4 @@
-import type { RuntimeResponse, ThanksItem } from "../types";
+import type { RuntimeResponse } from "../types";
 import {
   getThanksQueue,
   getThanksSettings,
@@ -8,7 +8,7 @@ import {
 import { formatThanksMessage, shiftThanks } from "./thanks";
 
 export async function getThanksState(): Promise<{
-  queue: ThanksItem[];
+  queue: Awaited<ReturnType<typeof getThanksQueue>>;
   preview: string;
 }> {
   const queue = await getThanksQueue();
@@ -31,7 +31,9 @@ export async function skipNextThanks(): Promise<RuntimeResponse> {
   };
 }
 
-export async function openNextThanks(): Promise<RuntimeResponse> {
+export async function openNextThanks(
+  options: { active?: boolean } = {},
+): Promise<RuntimeResponse> {
   const settings = await getThanksSettings();
   if (!settings.enabled) {
     return { ok: false, error: "お礼メッセージはオプションでオフになっています" };
@@ -46,9 +48,9 @@ export async function openNextThanks(): Promise<RuntimeResponse> {
   await setPendingThanksFill({ urlname: next.urlname, body });
   await setThanksQueue(rest);
 
-  await chrome.tabs.create({
+  const tab = await chrome.tabs.create({
     url: `https://note.com/${encodeURIComponent(next.urlname)}`,
-    active: true,
+    active: options.active ?? true,
   });
 
   const state = await getThanksState();
@@ -57,5 +59,6 @@ export async function openNextThanks(): Promise<RuntimeResponse> {
     thanksQueue: state.queue,
     thanksPreview: state.preview,
     thanksOpenedBody: body,
+    thanksTabId: tab.id,
   };
 }
