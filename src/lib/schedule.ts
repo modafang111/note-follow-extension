@@ -20,6 +20,7 @@ import {
   REPEAT_MINUTES,
 } from "./schedule-time";
 import { mergeUrlnameText, parseUrlnames } from "./urlnames";
+import { notifyPopup } from "./notify";
 import type {
   Follower,
   ScheduleSettings,
@@ -68,6 +69,10 @@ export async function runTestFollowBack(): Promise<ScheduledJobResult> {
   if (importedNames.length > 15) {
     await appendJobInfo(`テスト対象: ほか ${importedNames.length - 15} 人`);
   }
+  await notifyPopup(
+    "テスト実行が終わりました",
+    `対象 ${importedNames.length} 人。実際のフォローはしていません。`,
+  );
   return {
     trigger: "test",
     imported: importedNames.length,

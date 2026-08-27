@@ -8,6 +8,7 @@ import {
   SCHEDULE_ALARM,
 } from "./lib/schedule";
 import { resolveThanksFill, resumeThanksDelivery } from "./lib/thanks-delivery";
+import { notifyPopup } from "./lib/notify";
 import { getJob } from "./lib/storage";
 import type { RuntimeMessage, RuntimeResponse } from "./types";
 
@@ -70,6 +71,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     void runScheduledFollowBack("alarm").catch(async (error) => {
       const text = error instanceof Error ? error.message : String(error);
       await appendJobInfo(`定時のフォロー返しに失敗しました: ${text}`);
+      await notifyPopup("定時のフォロー返しが失敗しました", text);
     });
   }
 });

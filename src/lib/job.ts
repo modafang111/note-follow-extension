@@ -9,6 +9,7 @@ import {
   setJob,
 } from "./storage";
 import { decideFollowAction, parseUrlnames, randomDelayMs } from "./urlnames";
+import { notifyJobFinished, syncJobBadge } from "./notify";
 import { getThanksState, openNextThanks, skipNextThanks } from "./thanks-actions";
 import { queueAndDeliverThanks } from "./thanks-delivery";
 
@@ -58,6 +59,7 @@ export async function startFollowJob(): Promise<JobState> {
     message: `${urlnames.length} 件のフォローを開始します`,
   });
   await setJob(job);
+  await syncJobBadge(job);
   await processNext();
   return getJob();
 }
@@ -101,6 +103,9 @@ export async function stopFollowJob(): Promise<JobState> {
       message: "停止しました",
     });
     await setJob(job);
+    await notifyJobFinished(job);
+  } else {
+    await syncJobBadge(job);
   }
   return getJob();
 }
@@ -123,6 +128,7 @@ export async function processNext(): Promise<void> {
         message: "完了しました",
       });
       await setJob(job);
+      await notifyJobFinished(job);
       return;
     }
 
@@ -179,6 +185,7 @@ export async function processNext(): Promise<void> {
         job.error = message;
         await setJob(job);
         await chrome.alarms.clear(FOLLOW_ALARM);
+        await notifyJobFinished(job);
         return;
       }
     }
@@ -194,6 +201,7 @@ export async function processNext(): Promise<void> {
         message: "完了しました",
       });
       await setJob(job);
+      await notifyJobFinished(job);
       return;
     }
 
@@ -207,6 +215,7 @@ export async function processNext(): Promise<void> {
 
 export async function resumeIfNeeded(): Promise<void> {
   const job = await getJob();
+  await syncJobBadge(job);
   if (job.status !== "running") return;
   const existing = await chrome.alarms.get(FOLLOW_ALARM);
   if (!existing) {
