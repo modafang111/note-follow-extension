@@ -42,7 +42,7 @@ function waitForThanksFill(tabId: number): Promise<FillResult> {
 async function logThanks(message: string): Promise<void> {
   const job = await getJob();
   job.logs = [
-    { urlname: "", status: "info", message, at: Date.now() },
+    { urlname: "", status: "info" as const, message, at: Date.now() },
     ...job.logs,
   ].slice(0, 80);
   await setJob(job);
