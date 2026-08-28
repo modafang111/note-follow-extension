@@ -1,4 +1,4 @@
-import type { Creator } from "../types";
+import type { Creator, CurrentUser, Follower, FollowersPage } from "../types";
 
 const API_ORIGIN = "https://note.com";
 
@@ -141,6 +141,85 @@ export async function fetchCreator(urlname: string): Promise<Creator> {
     nickname: typeof data.nickname === "string" ? data.nickname : undefined,
     isFollowing: Boolean(data.isFollowing ?? data.is_following),
     isMyself: Boolean(data.isMyself ?? data.is_myself),
+  };
+}
+
+export async function fetchCurrentUser(): Promise<CurrentUser> {
+  const res = await noteFetch("/api/v2/current_user");
+  if (res.status === 401 || res.status === 403) {
+    throw new NoteApiError(
+      "note.com にログインしてから実行してください",
+      res.status,
+    );
+  }
+  if (!res.ok) {
+    throw new NoteApiError(`ログインユーザーの取得に失敗しました (${res.status})`, res.status);
+  }
+
+  const json = await readJson(res);
+  const data = unwrapData<Record<string, unknown>>(json);
+  const user = (
+    data && typeof data.user === "object" && data.user
+      ? data.user
+      : data
+  ) as Record<string, unknown> | string | null;
+
+  if (!user || typeof user !== "object") {
+    throw new NoteApiError("ログインユーザーの取得に失敗しました");
+  }
+
+  const urlname = typeof user.urlname === "string" ? user.urlname : "";
+  const id = Number(user.id);
+  const key = typeof user.key === "string" ? user.key.trim() : "";
+  if (!urlname) {
+    throw new NoteApiError("自分の urlname を取得できません");
+  }
+
+  return {
+    id: Number.isFinite(id) ? id : 0,
+    key,
+    urlname,
+    nickname: typeof user.nickname === "string" ? user.nickname : undefined,
+  };
+}
+
+export async function fetchFollowersPage(
+  urlname: string,
+  page: number,
+): Promise<FollowersPage> {
+  const res = await noteFetch(
+    `/api/v2/creators/${encodeURIComponent(urlname)}/followers?page=${page}`,
+  );
+  if (res.status === 401 || res.status === 403) {
+    throw new NoteApiError(
+      "note.com にログインしてから実行してください",
+      res.status,
+    );
+  }
+  if (!res.ok) {
+    throw new NoteApiError(`フォロワー取得に失敗しました (${res.status})`, res.status);
+  }
+
+  const data = unwrapData<Record<string, unknown>>(await readJson(res));
+  const raw = Array.isArray(data?.follows) ? data.follows : [];
+  const follows: Follower[] = raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const name = typeof record.urlname === "string" ? record.urlname : "";
+    if (!name) return [];
+    return [
+      {
+        urlname: name,
+        nickname: typeof record.nickname === "string" ? record.nickname : undefined,
+        isFollowing: Boolean(record.isFollowing ?? record.is_following),
+      },
+    ];
+  });
+
+  return {
+    follows,
+    isLastPage: Boolean(data?.isLastPage ?? data?.is_last_page ?? follows.length === 0),
+    totalCount: Number(data?.totalCount ?? data?.total_count ?? follows.length) || follows.length,
   };
 }
 

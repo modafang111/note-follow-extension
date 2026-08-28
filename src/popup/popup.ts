@@ -1,5 +1,8 @@
 import type { JobState, RuntimeMessage, RuntimeResponse, ThanksItem } from "../types";
+import { formatDateTime } from "../lib/schedule-time";
 
+const importBtn = document.querySelector<HTMLButtonElement>("#import-btn")!;
+const testBtn = document.querySelector<HTMLButtonElement>("#test-btn")!;
 const startBtn = document.querySelector<HTMLButtonElement>("#start-btn")!;
 const stopBtn = document.querySelector<HTMLButtonElement>("#stop-btn")!;
 const optionsBtn = document.querySelector<HTMLButtonElement>("#options-btn")!;
@@ -17,6 +20,8 @@ const thanksMeta = document.querySelector<HTMLElement>("#thanks-meta")!;
 const thanksPreview = document.querySelector<HTMLElement>("#thanks-preview")!;
 const thanksOpen = document.querySelector<HTMLButtonElement>("#thanks-open")!;
 const thanksSkip = document.querySelector<HTMLButtonElement>("#thanks-skip")!;
+const scheduleNext = document.querySelector<HTMLElement>("#schedule-next")!;
+const lastRun = document.querySelector<HTMLElement>("#last-run")!;
 
 const STATUS_LABEL: Record<JobState["status"], string> = {
   idle: "待機中",
@@ -34,6 +39,8 @@ function render(job: JobState, error?: string): void {
   statusBadge.className = `badge ${job.status}`;
 
   const running = job.status === "running";
+  importBtn.disabled = running;
+  testBtn.disabled = running;
   startBtn.disabled = running;
   stopBtn.disabled = !running;
 
@@ -46,6 +53,14 @@ function render(job: JobState, error?: string): void {
   followedEl.textContent = String(job.followed);
   skippedEl.textContent = String(job.skipped);
   failedEl.textContent = String(job.failed);
+
+  if (job.status === "running" && job.startedAt) {
+    lastRun.textContent = `開始: ${formatDateTime(job.startedAt)}`;
+  } else if (job.finishedAt) {
+    lastRun.textContent = `終了: ${formatDateTime(job.finishedAt)}`;
+  } else {
+    lastRun.textContent = "終了: まだありません";
+  }
 
   const message = error || job.error;
   errorEl.hidden = !message;
@@ -63,7 +78,7 @@ function render(job: JobState, error?: string): void {
     const li = document.createElement("li");
     const name = document.createElement("div");
     name.className = "name";
-    name.textContent = log.urlname || "システム";
+    name.textContent = `${formatDateTime(log.at)}  ${log.urlname || "システム"}`;
     const msg = document.createElement("div");
     msg.className = log.status;
     msg.textContent = log.message;
@@ -81,21 +96,55 @@ function renderThanks(queue: ThanksItem[], preview: string): void {
 }
 
 async function refresh(): Promise<void> {
-  const [jobRes, thanksRes] = await Promise.all([
+  const [jobRes, thanksRes, scheduleRes] = await Promise.all([
     send({ type: "GET_JOB" }),
     send({ type: "GET_THANKS" }),
+    send({ type: "GET_SCHEDULE" }),
   ]);
   if (jobRes.job) render(jobRes.job, jobRes.error);
   renderThanks(thanksRes.thanksQueue ?? [], thanksRes.thanksPreview ?? "");
+  scheduleNext.textContent = `次回の自動フォロー: ${scheduleRes.scheduleNextLabel ?? "未設定"}`;
 }
+
+importBtn.addEventListener("click", () => {
+  void (async () => {
+    importBtn.disabled = true;
+    testBtn.disabled = true;
+    startBtn.disabled = true;
+    const res = await send({ type: "IMPORT_FOLLOWERS" });
+    const job = res.job ?? (await send({ type: "GET_JOB" })).job;
+    if (job) render(job, res.ok ? undefined : res.error);
+    else {
+      importBtn.disabled = false;
+      testBtn.disabled = false;
+      startBtn.disabled = false;
+    }
+  })();
+});
+
+testBtn.addEventListener("click", () => {
+  void (async () => {
+    testBtn.disabled = true;
+    const res = await send({ type: "TEST_FOLLOW" });
+    const job = res.job ?? (await send({ type: "GET_JOB" })).job;
+    if (job) render(job, res.ok ? undefined : res.error);
+    testBtn.disabled = job?.status === "running";
+  })();
+});
 
 startBtn.addEventListener("click", () => {
   void (async () => {
     startBtn.disabled = true;
+    importBtn.disabled = true;
+    testBtn.disabled = true;
     const res = await send({ type: "START_FOLLOW" });
     const job = res.job ?? (await send({ type: "GET_JOB" })).job;
     if (job) render(job, res.ok ? undefined : res.error);
-    else startBtn.disabled = false;
+    else {
+      startBtn.disabled = false;
+      importBtn.disabled = false;
+      testBtn.disabled = false;
+    }
   })();
 });
 

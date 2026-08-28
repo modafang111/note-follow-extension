@@ -63,3 +63,19 @@ export function decideFollowAction(creator: {
   if (creator.isFollowing) return "skip-following";
   return "follow";
 }
+
+export function mergeUrlnameText(existing: string, added: string[]): string {
+  const have = new Set(parseUrlnames(existing).map((name) => name.toLowerCase()));
+  const extra = added.filter((name) => {
+    const urlname = normalizeUrlname(name);
+    if (!urlname) return false;
+    const key = urlname.toLowerCase();
+    if (have.has(key)) return false;
+    have.add(key);
+    return true;
+  });
+  if (extra.length === 0) return existing;
+  const trimmed = existing.replace(/\s+$/, "");
+  const prefix = trimmed ? `${trimmed}\n` : "";
+  return `${prefix}${extra.join("\n")}\n`;
+}

@@ -3,16 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>フォロー対象の設定</title>
+    <title>フォロー設定</title>
     <link rel="stylesheet" href="./options.css" />
   </head>
   <body>
     <main>
-      <h1>フォロー対象の urlname</h1>
+      <h1>フォロー設定</h1>
       <p>
-        1行に1人ずつ入力してください。Chrome で
+        Chrome で
         <a href="https://note.com/" target="_blank" rel="noreferrer">note.com</a>
         にログイン済みであれば、その Cookie セッションを使います。パスワードは保存しません。
+      </p>
+
+      <h2>自動フォロー返し</h2>
+      <p>
+        自分のフォロワーを取り込み、まだフォローしていない人を古い順にフォローします。開始日時を入れて保存すると、その日時から自動で動きます。フォローに成功した相手には、同じ流れでお礼メッセージも送ります。
+      </p>
+      <label class="check">
+        <input id="schedule-enabled" type="checkbox" />
+        自動フォロー返しを使う
+      </label>
+      <label for="schedule-start">開始日時</label>
+      <input id="schedule-start" type="datetime-local" />
+      <label for="schedule-repeat">繰り返し</label>
+      <select id="schedule-repeat">
+        <option value="once">指定日時に1回だけ</option>
+        <option value="every-30m">30分ごと</option>
+        <option value="hourly">1時間ごと</option>
+        <option value="daily" selected>毎日</option>
+      </select>
+      <p class="muted">
+        テスト実行は、誰が対象になるか確認するだけです。実際にはフォローしません。本番はポップアップの「フォロワーを取り込んで開始」か、開始日時どおりの自動実行です。
+      </p>
+      <div class="row">
+        <button id="save-btn" type="button">保存</button>
+        <button id="test-btn" type="button" class="secondary">テスト実行</button>
+        <span id="saved" hidden>保存しました</span>
+      </div>
+      <pre id="test-result" class="test-result" hidden></pre>
+
+      <h2>手動の urlname リスト</h2>
+      <p>
+        自動取り込み以外に、フォローしたい人を 1 行に 1 人ずつ書けます。
       </p>
       <p class="muted">
         例: <code>fuji1080</code> / <code>https://note.com/fuji1080</code> /
@@ -25,18 +57,14 @@
         placeholder="# 1行1人&#10;example_user&#10;https://note.com/another_user"
       ></textarea>
       <p id="count" class="muted">0 人</p>
-      <div class="row">
-        <button id="save-btn" type="button">保存</button>
-        <span id="saved" hidden>保存しました</span>
-      </div>
 
       <h2>フォロー返しのお礼メッセージ</h2>
       <p>
-        フォローに成功した相手をキューに入れ、ポップアップから 1 人ずつ note.com のメッセージ画面を開きます。送信 API は非公開のため、本文の下書きまで行い、<strong>送信は自分で確定</strong>します。
+        自動フォローでも、リストからでも、フォローに成功した相手へ定型のお礼を送ります。note.com に送信 API が無いため、メッセージ画面を開いて送信ボタンを押します。
       </p>
       <label class="check">
         <input id="thanks-enabled" type="checkbox" />
-        フォロー後にお礼メッセージを用意する
+        フォロー返しした相手にお礼メッセージも送る
       </label>
       <label for="thanks-template">お礼文（定型）</label>
       <textarea
@@ -45,7 +73,7 @@
         placeholder="{nickname}さん&#10;フォローありがとうございます。"
       ></textarea>
       <p class="muted">
-        <code>{nickname}</code> は表示名、<code>{urlname}</code> は ID に置き換わります。相手がメッセージ受信をオフにしている場合は送れません。
+        <code>{nickname}</code> は表示名、<code>{urlname}</code> は ID に置き換わります。相手がメッセージ受信をオフにしている場合は送れません。上の「保存」でリストとお礼設定も一緒に保存されます。
       </p>
     </main>
     <script type="module" src="./options.ts"></script>

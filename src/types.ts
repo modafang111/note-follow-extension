@@ -36,9 +36,47 @@ export type JobState = {
   failed: number;
   logs: JobLog[];
   error: string | null;
+  startedAt: number | null;
+  finishedAt: number | null;
 };
 
 export type FollowDecision = "follow" | "skip-following" | "skip-myself";
+
+export type CurrentUser = {
+  id: number;
+  key: string;
+  urlname: string;
+  nickname?: string;
+};
+
+export type Follower = {
+  urlname: string;
+  nickname?: string;
+  isFollowing: boolean;
+};
+
+export type FollowersPage = {
+  follows: Follower[];
+  isLastPage: boolean;
+  totalCount: number;
+};
+
+export type ScheduledJobTrigger = "manual" | "alarm" | "startup" | "test";
+
+export type ScheduledJobResult = {
+  trigger: ScheduledJobTrigger;
+  imported: number;
+  started: boolean;
+  message: string;
+};
+
+export type ScheduleRepeat = "once" | "every-30m" | "hourly" | "daily";
+
+export type ScheduleSettings = {
+  enabled: boolean;
+  startAt: string;
+  repeat: ScheduleRepeat;
+};
 
 export type Creator = {
   id: number;
@@ -55,7 +93,12 @@ export type RuntimeMessage =
   | { type: "GET_JOB" }
   | { type: "GET_THANKS" }
   | { type: "OPEN_NEXT_THANKS" }
-  | { type: "SKIP_THANKS" };
+  | { type: "SKIP_THANKS" }
+  | { type: "IMPORT_FOLLOWERS" }
+  | { type: "TEST_FOLLOW" }
+  | { type: "GET_SCHEDULE" }
+  | { type: "SET_SCHEDULE"; settings: ScheduleSettings }
+  | { type: "THANKS_FILL_RESULT"; sent: boolean; error?: string };
 
 export type RuntimeResponse = {
   ok: boolean;
@@ -64,4 +107,9 @@ export type RuntimeResponse = {
   thanksQueue?: ThanksItem[];
   thanksPreview?: string;
   thanksOpenedBody?: string;
+  thanksTabId?: number;
+  scheduled?: ScheduledJobResult;
+  schedule?: ScheduleSettings;
+  scheduleEnabled?: boolean;
+  scheduleNextLabel?: string;
 };

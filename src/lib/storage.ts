@@ -1,4 +1,11 @@
-import type { JobState, PendingThanksFill, ThanksItem, ThanksSettings } from "../types";
+import type {
+  JobState,
+  PendingThanksFill,
+  ScheduleRepeat,
+  ScheduleSettings,
+  ThanksItem,
+  ThanksSettings,
+} from "../types";
 import { DEFAULT_THANKS_SETTINGS } from "./thanks";
 
 const URLNAMES_KEY = "urlnamesText";
@@ -6,6 +13,8 @@ const JOB_KEY = "job";
 const THANKS_SETTINGS_KEY = "thanksSettings";
 const THANKS_QUEUE_KEY = "thanksQueue";
 const PENDING_THANKS_KEY = "pendingThanksFill";
+const COMPLETED_KEY = "completedUrlnames";
+const SCHEDULE_KEY = "scheduleSettings";
 
 export const EMPTY_JOB: JobState = {
   status: "idle",
@@ -18,6 +27,8 @@ export const EMPTY_JOB: JobState = {
   failed: 0,
   logs: [],
   error: null,
+  startedAt: null,
+  finishedAt: null,
 };
 
 export async function getUrlnamesText(): Promise<string> {
@@ -82,4 +93,51 @@ export async function setPendingThanksFill(
   } else {
     await chrome.storage.local.remove(PENDING_THANKS_KEY);
   }
+}
+
+export async function getCompletedUrlnames(): Promise<string[]> {
+  const result = await chrome.storage.local.get(COMPLETED_KEY);
+  return Array.isArray(result[COMPLETED_KEY])
+    ? (result[COMPLETED_KEY] as string[])
+    : [];
+}
+
+export async function addCompletedUrlname(urlname: string): Promise<void> {
+  const key = urlname.trim().toLowerCase();
+  if (!key) return;
+  const current = await getCompletedUrlnames();
+  if (current.some((name) => name.toLowerCase() === key)) return;
+  await chrome.storage.local.set({ [COMPLETED_KEY]: [...current, urlname] });
+}
+
+export const DEFAULT_SCHEDULE_SETTINGS: ScheduleSettings = {
+  enabled: false,
+  startAt: "",
+  repeat: "daily",
+};
+
+function isScheduleRepeat(value: unknown): value is ScheduleRepeat {
+  return (
+    value === "once" ||
+    value === "every-30m" ||
+    value === "hourly" ||
+    value === "daily"
+  );
+}
+
+export async function getScheduleSettings(): Promise<ScheduleSettings> {
+  const result = await chrome.storage.local.get(SCHEDULE_KEY);
+  const stored = result[SCHEDULE_KEY] as Partial<ScheduleSettings> | undefined;
+  return {
+    ...DEFAULT_SCHEDULE_SETTINGS,
+    enabled: Boolean(stored?.enabled),
+    startAt: typeof stored?.startAt === "string" ? stored.startAt : "",
+    repeat: isScheduleRepeat(stored?.repeat)
+      ? stored.repeat
+      : DEFAULT_SCHEDULE_SETTINGS.repeat,
+  };
+}
+
+export async function setScheduleSettings(settings: ScheduleSettings): Promise<void> {
+  await chrome.storage.local.set({ [SCHEDULE_KEY]: settings });
 }

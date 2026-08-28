@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { enqueueThanks, formatThanksMessage, shiftThanks } from "./thanks";
+import { enqueueThanks, formatThanksMessage, isThanksSendLabel, shiftThanks } from "./thanks";
 
 describe("formatThanksMessage", () => {
   it("replaces nickname and urlname", () => {
@@ -15,6 +15,16 @@ describe("formatThanksMessage", () => {
     expect(
       formatThanksMessage("{nickname}さん、ありがとう", { urlname: "fuji1080" }),
     ).toBe("fuji1080さん、ありがとう");
+  });
+});
+
+describe("isThanksSendLabel", () => {
+  it("accepts note.com send buttons only", () => {
+    expect(isThanksSendLabel("送信")).toBe(true);
+    expect(isThanksSendLabel("送る")).toBe(true);
+    expect(isThanksSendLabel("Send")).toBe(true);
+    expect(isThanksSendLabel("送信取り消し")).toBe(false);
+    expect(isThanksSendLabel("メッセージ")).toBe(false);
   });
 });
 

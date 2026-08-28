@@ -13,13 +13,21 @@
     </header>
 
     <p class="hint">
-      パスワードは使いません。Chrome で note.com にログインした Cookie を利用します。
+      パスワードは使いません。Chrome で note.com にログインした Cookie を利用します。フォローしてくれた人を取り込み、まだ返していない相手をフォローします。終わると画面の端に通知が出ます。
     </p>
 
     <div class="actions">
-      <button id="start-btn" type="button">フォロー開始</button>
+      <button id="import-btn" type="button">フォロワーを取り込んで開始</button>
+    </div>
+    <div class="actions">
+      <button id="test-btn" type="button" class="secondary">テスト実行</button>
+    </div>
+    <div class="actions">
+      <button id="start-btn" type="button" class="secondary">リストから開始</button>
       <button id="stop-btn" type="button" class="secondary" disabled>停止</button>
     </div>
+    <p id="schedule-next" class="hint schedule-next">次回の自動フォロー: 未設定</p>
+    <p id="last-run" class="hint schedule-next">終了: まだありません</p>
 
     <p id="error" class="error" hidden></p>
 
@@ -48,16 +56,16 @@
       <p id="thanks-meta" class="muted"></p>
       <pre id="thanks-preview" class="thanks-preview"></pre>
       <div class="actions">
-        <button id="thanks-open" type="button">メッセージ画面を開く</button>
+        <button id="thanks-open" type="button">お礼を送り直す</button>
         <button id="thanks-skip" type="button" class="secondary">この人をスキップ</button>
       </div>
       <p class="hint">
-        本文を入れてメッセージ画面を開きます。送信ボタンは自分で押してください。
+        自動フォローでもお礼を送ります。送れなかった人はここに残るので、ボタンから送り直せます。
       </p>
     </section>
 
     <footer>
-      <button id="options-btn" type="button" class="link">対象リストを編集</button>
+      <button id="options-btn" type="button" class="link">自動フォローと対象リストを設定</button>
     </footer>
 
     <script type="module" src="./popup.ts"></script>

@@ -2,24 +2,34 @@ import type { JobLog, JobState, RuntimeMessage, RuntimeResponse } from "../types
 import { assertLoggedIn, fetchCreator, followUser, NoteApiError } from "./note-api";
 import {
   EMPTY_JOB,
+  addCompletedUrlname,
+  getCompletedUrlnames,
   getJob,
-  getThanksQueue,
-  getThanksSettings,
   getUrlnamesText,
   setJob,
-  setThanksQueue,
 } from "./storage";
-import { enqueueThanks } from "./thanks";
 import { decideFollowAction, parseUrlnames, randomDelayMs } from "./urlnames";
+import { notifyJobFinished, syncJobBadge } from "./notify";
 import { getThanksState, openNextThanks, skipNextThanks } from "./thanks-actions";
+import { queueAndDeliverThanks } from "./thanks-delivery";
 
 export const FOLLOW_ALARM = "note-follow-next";
 const MAX_LOGS = 80;
+
+function stampFinished(job: JobState): void {
+  job.finishedAt = Date.now();
+}
 
 let processing = false;
 
 function prependLog(job: JobState, log: Omit<JobLog, "at">): void {
   job.logs = [{ ...log, at: Date.now() }, ...job.logs].slice(0, MAX_LOGS);
+}
+
+export async function appendJobInfo(message: string): Promise<void> {
+  const job = await getJob();
+  prependLog(job, { urlname: "", status: "info", message });
+  await setJob(job);
 }
 
 export async function startFollowJob(): Promise<JobState> {
@@ -28,9 +38,14 @@ export async function startFollowJob(): Promise<JobState> {
     return current;
   }
 
-  const urlnames = parseUrlnames(await getUrlnamesText());
+  const completed = new Set(
+    (await getCompletedUrlnames()).map((name) => name.toLowerCase()),
+  );
+  const urlnames = parseUrlnames(await getUrlnamesText()).filter(
+    (name) => !completed.has(name.toLowerCase()),
+  );
   if (urlnames.length === 0) {
-    throw new Error("フォロー対象の urlname がありません。オプションで入力してください。");
+    throw new Error("フォロー対象の urlname がありません。オプションで入力するか、フォロワーを取り込んでください。");
   }
 
   await chrome.alarms.clear(FOLLOW_ALARM);
@@ -41,6 +56,8 @@ export async function startFollowJob(): Promise<JobState> {
     status: "running",
     queue: [...urlnames],
     total: urlnames.length,
+    startedAt: Date.now(),
+    finishedAt: null,
   };
   prependLog(job, {
     urlname: "",
@@ -48,8 +65,35 @@ export async function startFollowJob(): Promise<JobState> {
     message: `${urlnames.length} 件のフォローを開始します`,
   });
   await setJob(job);
+  await syncJobBadge(job);
   await processNext();
   return getJob();
+}
+
+export async function appendToRunningQueue(urlnames: string[]): Promise<number> {
+  const job = await getJob();
+  if (job.status !== "running") return 0;
+
+  const have = new Set(
+    [...job.queue, job.current ?? ""].map((name) => name.toLowerCase()).filter(Boolean),
+  );
+  const extra = urlnames.filter((name) => {
+    const key = name.trim().toLowerCase();
+    if (!key || have.has(key)) return false;
+    have.add(key);
+    return true;
+  });
+  if (extra.length === 0) return 0;
+
+  job.queue.push(...extra);
+  job.total += extra.length;
+  prependLog(job, {
+    urlname: "",
+    status: "info",
+    message: `実行中のキューに ${extra.length} 人を追加しました`,
+  });
+  await setJob(job);
+  return extra.length;
 }
 
 export async function stopFollowJob(): Promise<JobState> {
@@ -64,7 +108,11 @@ export async function stopFollowJob(): Promise<JobState> {
       status: "info",
       message: "停止しました",
     });
+    stampFinished(job);
     await setJob(job);
+    await notifyJobFinished(job);
+  } else {
+    await syncJobBadge(job);
   }
   return getJob();
 }
@@ -86,7 +134,9 @@ export async function processNext(): Promise<void> {
         status: "info",
         message: "完了しました",
       });
+      stampFinished(job);
       await setJob(job);
+      await notifyJobFinished(job);
       return;
     }
 
@@ -104,6 +154,7 @@ export async function processNext(): Promise<void> {
           status: "skipped",
           message: "既にフォロー済みのためスキップ",
         });
+        await addCompletedUrlname(urlname);
       } else if (action === "skip-myself") {
         job.skipped += 1;
         prependLog(job, {
@@ -111,6 +162,7 @@ export async function processNext(): Promise<void> {
           status: "skipped",
           message: "自分自身のためスキップ",
         });
+        await addCompletedUrlname(urlname);
       } else {
         await followUser(creator.key);
         job.followed += 1;
@@ -121,16 +173,11 @@ export async function processNext(): Promise<void> {
             ? `${creator.nickname} をフォローしました`
             : "フォローしました",
         });
-        const thanks = await getThanksSettings();
-        if (thanks.enabled) {
-          const queue = await getThanksQueue();
-          await setThanksQueue(
-            enqueueThanks(queue, {
-              urlname: creator.urlname || urlname,
-              nickname: creator.nickname || urlname,
-            }),
-          );
-        }
+        await queueAndDeliverThanks({
+          urlname: creator.urlname || urlname,
+          nickname: creator.nickname || urlname,
+        });
+        await addCompletedUrlname(urlname);
       }
     } catch (error) {
       job.failed += 1;
@@ -144,8 +191,10 @@ export async function processNext(): Promise<void> {
         job.status = "stopped";
         job.current = null;
         job.error = message;
+        stampFinished(job);
         await setJob(job);
         await chrome.alarms.clear(FOLLOW_ALARM);
+        await notifyJobFinished(job);
         return;
       }
     }
@@ -160,7 +209,9 @@ export async function processNext(): Promise<void> {
         status: "info",
         message: "完了しました",
       });
+      stampFinished(job);
       await setJob(job);
+      await notifyJobFinished(job);
       return;
     }
 
@@ -174,6 +225,7 @@ export async function processNext(): Promise<void> {
 
 export async function resumeIfNeeded(): Promise<void> {
   const job = await getJob();
+  await syncJobBadge(job);
   if (job.status !== "running") return;
   const existing = await chrome.alarms.get(FOLLOW_ALARM);
   if (!existing) {

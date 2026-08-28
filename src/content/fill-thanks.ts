@@ -2,6 +2,7 @@ import {
   getPendingThanksFill,
   setPendingThanksFill,
 } from "../lib/storage";
+import { isThanksSendLabel } from "../lib/thanks";
 
 const BUTTON_LABELS = ["メッセージ", "Message"];
 
@@ -88,6 +89,29 @@ function setComposerValue(el: HTMLElement, value: string): void {
   );
 }
 
+function findSendButton(): HTMLElement | null {
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>("button, [role='button']"),
+  );
+  for (const el of candidates) {
+    if (!isVisible(el)) continue;
+    if (isThanksSendLabel(labelOf(el))) return el;
+  }
+  return null;
+}
+
+async function reportFill(sent: boolean, error?: string): Promise<void> {
+  try {
+    await chrome.runtime.sendMessage({
+      type: "THANKS_FILL_RESULT",
+      sent,
+      error,
+    });
+  } catch {
+    // service worker が起きていなくても本文入力は済んでいる
+  }
+}
+
 function showToast(text: string): void {
   const id = "note-follow-thanks-toast";
   document.getElementById(id)?.remove();
@@ -140,16 +164,27 @@ async function fillThanks(): Promise<void> {
   }
 
   const composer = await waitFor(findComposer, button ? 5000 : 1500);
-  if (composer) {
-    setComposerValue(composer, pending.body);
-    showToast("お礼文を入力しました。内容を確認して送信してください。");
-    await setPendingThanksFill(null);
+  if (!composer) {
+    showToast(
+      "メッセージ欄を自動入力できませんでした。本文はクリップボードにコピー済みです。相互フォローと相手の受信設定を確認してください。",
+    );
+    await reportFill(false, "composer");
     return;
   }
 
-  showToast(
-    "メッセージ欄を自動入力できませんでした。本文はクリップボードにコピー済みです。相互フォローと相手の受信設定を確認してください。",
-  );
+  setComposerValue(composer, pending.body);
+  await setPendingThanksFill(null);
+
+  const sendButton = await waitFor(findSendButton, 4000);
+  if (sendButton) {
+    sendButton.click();
+    showToast("お礼メッセージを送信しました。");
+    await reportFill(true);
+    return;
+  }
+
+  showToast("お礼文を入力しました。送信ボタンが見つからないので、自分で押してください。");
+  await reportFill(false, "send-button");
 }
 
 void fillThanks();

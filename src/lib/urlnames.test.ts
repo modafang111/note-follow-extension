@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { decideFollowAction, normalizeUrlname, parseUrlnames, randomDelayMs } from "./urlnames";
+import {
+  decideFollowAction,
+  mergeUrlnameText,
+  normalizeUrlname,
+  parseUrlnames,
+  randomDelayMs,
+} from "./urlnames";
 
 describe("normalizeUrlname", () => {
   it("accepts a plain urlname", () => {
@@ -54,5 +60,19 @@ describe("decideFollowAction", () => {
     expect(decideFollowAction({ isFollowing: false, isMyself: false })).toBe(
       "follow",
     );
+  });
+});
+
+describe("mergeUrlnameText", () => {
+  it("appends only new urlnames", () => {
+    const merged = mergeUrlnameText("fuji1080\n", ["fuji1080", "other_user"]);
+    expect(parseUrlnames(merged)).toEqual(["fuji1080", "other_user"]);
+  });
+
+  it("does not treat a substring as a duplicate", () => {
+    expect(parseUrlnames(mergeUrlnameText("user\n", ["username"]))).toEqual([
+      "user",
+      "username",
+    ]);
   });
 });
