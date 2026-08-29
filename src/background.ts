@@ -9,7 +9,16 @@ import {
 } from "./lib/schedule";
 import { resolveThanksFill, resumeThanksDelivery } from "./lib/thanks-delivery";
 import { notifyPopup } from "./lib/notify";
-import { getJob } from "./lib/storage";
+import { getJob, getUnfollowJob } from "./lib/storage";
+import {
+  isUnfollowRunning,
+  processUnfollowNext,
+  resumeUnfollowIfNeeded,
+  runTestUnfollow,
+  startUnfollowJob,
+  stopUnfollowJob,
+  UNFOLLOW_ALARM,
+} from "./lib/unfollow-job";
 import type { RuntimeMessage, RuntimeResponse } from "./types";
 
 async function scheduleResponse(): Promise<RuntimeResponse> {
@@ -24,6 +33,32 @@ async function scheduleResponse(): Promise<RuntimeResponse> {
 
 async function dispatch(message: RuntimeMessage): Promise<RuntimeResponse> {
   try {
+    if (message.type === "GET_UNFOLLOW") {
+      return { ok: true, unfollowJob: await getUnfollowJob() };
+    }
+    if (message.type === "TEST_UNFOLLOW") {
+      const unfollow = await runTestUnfollow();
+      return { ok: true, unfollow, unfollowJob: await getUnfollowJob() };
+    }
+    if (message.type === "START_UNFOLLOW") {
+      return { ok: true, unfollowJob: await startUnfollowJob() };
+    }
+    if (message.type === "STOP_UNFOLLOW") {
+      return { ok: true, unfollowJob: await stopUnfollowJob() };
+    }
+    if (
+      (message.type === "IMPORT_FOLLOWERS" ||
+        message.type === "START_FOLLOW" ||
+        message.type === "TEST_FOLLOW") &&
+      (await isUnfollowRunning())
+    ) {
+      return {
+        ok: false,
+        error: "フォロー解除の実行中は、フォロー返しを開始できません。終わるまで待ってください。",
+        job: await getJob(),
+        unfollowJob: await getUnfollowJob(),
+      };
+    }
     if (message.type === "IMPORT_FOLLOWERS") {
       const scheduled = await runScheduledFollowBack("manual");
       return { ok: true, scheduled, job: await getJob() };
@@ -45,6 +80,7 @@ async function dispatch(message: RuntimeMessage): Promise<RuntimeResponse> {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
       job: await getJob(),
+      unfollowJob: await getUnfollowJob(),
     };
   }
 }
@@ -67,12 +103,28 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     void processNext();
     return;
   }
+  if (alarm.name === UNFOLLOW_ALARM) {
+    void processUnfollowNext();
+    return;
+  }
   if (alarm.name === SCHEDULE_ALARM) {
-    void runScheduledFollowBack("alarm").catch(async (error) => {
-      const text = error instanceof Error ? error.message : String(error);
-      await appendJobInfo(`定時のフォロー返しに失敗しました: ${text}`);
-      await notifyPopup("定時のフォロー返しが失敗しました", text);
-    });
+    void (async () => {
+      if (await isUnfollowRunning()) {
+        await appendJobInfo(
+          "フォロー解除の実行中のため、定時のフォロー返しを見送りました。",
+        );
+        await notifyPopup(
+          "定時のフォロー返しを見送りました",
+          "フォロー解除が終わるまで待ちます。",
+        );
+        return;
+      }
+      await runScheduledFollowBack("alarm").catch(async (error) => {
+        const text = error instanceof Error ? error.message : String(error);
+        await appendJobInfo(`定時のフォロー返しに失敗しました: ${text}`);
+        await notifyPopup("定時のフォロー返しが失敗しました", text);
+      });
+    })();
   }
 });
 
@@ -80,14 +132,17 @@ chrome.runtime.onInstalled.addListener(() => {
   void resumeIfNeeded();
   void restoreScheduleAlarm();
   void resumeThanksDelivery();
+  void resumeUnfollowIfNeeded();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void resumeIfNeeded();
   void restoreScheduleAlarm();
   void resumeThanksDelivery();
+  void resumeUnfollowIfNeeded();
 });
 
 void resumeIfNeeded();
 void restoreScheduleAlarm();
 void resumeThanksDelivery();
+void resumeUnfollowIfNeeded();
