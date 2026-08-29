@@ -5,6 +5,7 @@ import type {
   ScheduleSettings,
   ThanksItem,
   ThanksSettings,
+  UnfollowJobState,
 } from "../types";
 import { DEFAULT_THANKS_SETTINGS } from "./thanks";
 
@@ -15,6 +16,8 @@ const THANKS_QUEUE_KEY = "thanksQueue";
 const PENDING_THANKS_KEY = "pendingThanksFill";
 const COMPLETED_KEY = "completedUrlnames";
 const SCHEDULE_KEY = "scheduleSettings";
+const UNFOLLOW_JOB_KEY = "unfollowJob";
+const UNFOLLOWED_KEY = "unfollowedUrlnames";
 
 export const EMPTY_JOB: JobState = {
   status: "idle",
@@ -140,4 +143,44 @@ export async function getScheduleSettings(): Promise<ScheduleSettings> {
 
 export async function setScheduleSettings(settings: ScheduleSettings): Promise<void> {
   await chrome.storage.local.set({ [SCHEDULE_KEY]: settings });
+}
+
+export const EMPTY_UNFOLLOW_JOB: UnfollowJobState = {
+  status: "idle",
+  queue: [],
+  current: null,
+  processed: 0,
+  total: 0,
+  unfollowed: 0,
+  skipped: 0,
+  failed: 0,
+  logs: [],
+  error: null,
+  startedAt: null,
+  finishedAt: null,
+};
+
+export async function getUnfollowJob(): Promise<UnfollowJobState> {
+  const result = await chrome.storage.local.get(UNFOLLOW_JOB_KEY);
+  const job = result[UNFOLLOW_JOB_KEY] as UnfollowJobState | undefined;
+  return job ? { ...EMPTY_UNFOLLOW_JOB, ...job } : { ...EMPTY_UNFOLLOW_JOB };
+}
+
+export async function setUnfollowJob(job: UnfollowJobState): Promise<void> {
+  await chrome.storage.local.set({ [UNFOLLOW_JOB_KEY]: job });
+}
+
+export async function getUnfollowedUrlnames(): Promise<string[]> {
+  const result = await chrome.storage.local.get(UNFOLLOWED_KEY);
+  return Array.isArray(result[UNFOLLOWED_KEY])
+    ? (result[UNFOLLOWED_KEY] as string[])
+    : [];
+}
+
+export async function addUnfollowedUrlname(urlname: string): Promise<void> {
+  const key = urlname.trim().toLowerCase();
+  if (!key) return;
+  const current = await getUnfollowedUrlnames();
+  if (current.some((name) => name.toLowerCase() === key)) return;
+  await chrome.storage.local.set({ [UNFOLLOWED_KEY]: [...current, urlname] });
 }

@@ -1,4 +1,11 @@
-import type { Creator, CurrentUser, Follower, FollowersPage } from "../types";
+import type {
+  Creator,
+  CurrentUser,
+  Follower,
+  FollowersPage,
+  Following,
+  FollowingsPage,
+} from "../types";
 
 const API_ORIGIN = "https://note.com";
 
@@ -223,6 +230,50 @@ export async function fetchFollowersPage(
   };
 }
 
+export async function fetchFollowingsPage(
+  urlname: string,
+  page: number,
+): Promise<FollowingsPage> {
+  const res = await noteFetch(
+    `/api/v2/creators/${encodeURIComponent(urlname)}/followings?page=${page}`,
+  );
+  if (res.status === 401 || res.status === 403) {
+    throw new NoteApiError(
+      "note.com にログインしてから実行してください",
+      res.status,
+    );
+  }
+  if (!res.ok) {
+    throw new NoteApiError(`フォロー中の取得に失敗しました (${res.status})`, res.status);
+  }
+
+  const data = unwrapData<Record<string, unknown>>(await readJson(res));
+  const raw = Array.isArray(data?.follows) ? data.follows : [];
+  const follows: Following[] = raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const name = typeof record.urlname === "string" ? record.urlname : "";
+    const key = typeof record.key === "string" ? record.key.trim() : "";
+    if (!name || !key) return [];
+    return [
+      {
+        urlname: name,
+        key,
+        nickname: typeof record.nickname === "string" ? record.nickname : undefined,
+        isFollowing: Boolean(record.isFollowing ?? record.is_following),
+        isFollowed: Boolean(record.isFollowed ?? record.is_followed),
+        withdrawal: Boolean(record.withdrawal),
+      },
+    ];
+  });
+
+  return {
+    follows,
+    isLastPage: Boolean(data?.isLastPage ?? data?.is_last_page ?? follows.length === 0),
+    totalCount: Number(data?.totalCount ?? data?.total_count ?? follows.length) || follows.length,
+  };
+}
+
 export async function followUser(userKey: string): Promise<void> {
   const res = await noteFetch(`/api/v3/users/${encodeURIComponent(userKey)}/following`, {
     method: "POST",
@@ -242,5 +293,27 @@ export async function followUser(userKey: string): Promise<void> {
     const body = await readJson(res);
     const detail = body == null ? `HTTP ${res.status}` : formatApiError(body);
     throw new NoteApiError(`フォローに失敗しました: ${detail}`, res.status);
+  }
+}
+
+export async function unfollowUser(userKey: string): Promise<void> {
+  const res = await noteFetch(`/api/v3/users/${encodeURIComponent(userKey)}/following`, {
+    method: "DELETE",
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    throw new NoteApiError(
+      "note.com にログインしてから実行してください",
+      res.status,
+    );
+  }
+
+  // 既に解除済みはスキップ扱い
+  if (res.status === 404 || res.status === 409) return;
+
+  if (res.status !== 200 && res.status !== 201 && res.status !== 204) {
+    const body = await readJson(res);
+    const detail = body == null ? `HTTP ${res.status}` : formatApiError(body);
+    throw new NoteApiError(`フォロー解除に失敗しました: ${detail}`, res.status);
   }
 }

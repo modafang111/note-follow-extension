@@ -1,4 +1,10 @@
-import type { JobState, RuntimeMessage, RuntimeResponse, ThanksItem } from "../types";
+import type {
+  JobState,
+  RuntimeMessage,
+  RuntimeResponse,
+  ThanksItem,
+  UnfollowJobState,
+} from "../types";
 import { formatDateTime } from "../lib/schedule-time";
 
 const importBtn = document.querySelector<HTMLButtonElement>("#import-btn")!;
@@ -22,6 +28,17 @@ const thanksOpen = document.querySelector<HTMLButtonElement>("#thanks-open")!;
 const thanksSkip = document.querySelector<HTMLButtonElement>("#thanks-skip")!;
 const scheduleNext = document.querySelector<HTMLElement>("#schedule-next")!;
 const lastRun = document.querySelector<HTMLElement>("#last-run")!;
+const unfollowBtn = document.querySelector<HTMLButtonElement>("#unfollow-btn")!;
+const unfollowTestBtn = document.querySelector<HTMLButtonElement>("#unfollow-test-btn")!;
+const unfollowStopBtn = document.querySelector<HTMLButtonElement>("#unfollow-stop-btn")!;
+const unfollowProgressLabel = document.querySelector<HTMLElement>("#unfollow-progress-label")!;
+const unfollowCurrentLabel = document.querySelector<HTMLElement>("#unfollow-current-label")!;
+const unfollowBarFill = document.querySelector<HTMLElement>("#unfollow-bar-fill")!;
+const unfollowedEl = document.querySelector<HTMLElement>("#unfollowed")!;
+const unfollowSkippedEl = document.querySelector<HTMLElement>("#unfollow-skipped")!;
+const unfollowFailedEl = document.querySelector<HTMLElement>("#unfollow-failed")!;
+const unfollowLogList = document.querySelector<HTMLUListElement>("#unfollow-log-list")!;
+const unfollowLastRun = document.querySelector<HTMLElement>("#unfollow-last-run")!;
 
 const STATUS_LABEL: Record<JobState["status"], string> = {
   idle: "待機中",
@@ -29,6 +46,9 @@ const STATUS_LABEL: Record<JobState["status"], string> = {
   stopped: "停止",
   completed: "完了",
 };
+
+let lastUnfollowRunning = false;
+let lastFollowRunning = false;
 
 function send(message: RuntimeMessage): Promise<RuntimeResponse> {
   return chrome.runtime.sendMessage(message);
@@ -39,10 +59,14 @@ function render(job: JobState, error?: string): void {
   statusBadge.className = `badge ${job.status}`;
 
   const running = job.status === "running";
-  importBtn.disabled = running;
-  testBtn.disabled = running;
-  startBtn.disabled = running;
+  lastFollowRunning = running;
+  importBtn.disabled = running || lastUnfollowRunning;
+  testBtn.disabled = running || lastUnfollowRunning;
+  startBtn.disabled = running || lastUnfollowRunning;
   stopBtn.disabled = !running;
+  unfollowBtn.disabled = running || lastUnfollowRunning;
+  unfollowTestBtn.disabled = running || lastUnfollowRunning;
+  unfollowStopBtn.disabled = !lastUnfollowRunning;
 
   const total = job.total || 0;
   const processed = job.processed || 0;
@@ -87,6 +111,59 @@ function render(job: JobState, error?: string): void {
   }
 }
 
+function renderUnfollow(job: UnfollowJobState, error?: string): void {
+  lastUnfollowRunning = job.status === "running";
+  unfollowBtn.disabled = lastFollowRunning || lastUnfollowRunning;
+  unfollowTestBtn.disabled = lastFollowRunning || lastUnfollowRunning;
+  unfollowStopBtn.disabled = !lastUnfollowRunning;
+  importBtn.disabled = lastFollowRunning || lastUnfollowRunning;
+  testBtn.disabled = lastFollowRunning || lastUnfollowRunning;
+  startBtn.disabled = lastFollowRunning || lastUnfollowRunning;
+
+  const total = job.total || 0;
+  const processed = job.processed || 0;
+  unfollowProgressLabel.textContent = `${processed} / ${total}`;
+  unfollowCurrentLabel.textContent = job.current ? `処理中: ${job.current}` : "";
+  unfollowBarFill.style.width = total === 0 ? "0%" : `${Math.round((processed / total) * 100)}%`;
+
+  unfollowedEl.textContent = String(job.unfollowed);
+  unfollowSkippedEl.textContent = String(job.skipped);
+  unfollowFailedEl.textContent = String(job.failed);
+
+  if (job.status === "running" && job.startedAt) {
+    unfollowLastRun.textContent = `解除の開始: ${formatDateTime(job.startedAt)}`;
+  } else if (job.finishedAt) {
+    unfollowLastRun.textContent = `解除の終了: ${formatDateTime(job.finishedAt)}`;
+  } else {
+    unfollowLastRun.textContent = "解除の終了: まだありません";
+  }
+
+  if (error || job.error) {
+    errorEl.hidden = false;
+    errorEl.textContent = error || job.error || "";
+  }
+
+  unfollowLogList.replaceChildren();
+  if (job.logs.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "まだ解除のログはありません";
+    unfollowLogList.append(empty);
+    return;
+  }
+
+  for (const log of job.logs) {
+    const li = document.createElement("li");
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = `${formatDateTime(log.at)}  ${log.urlname || "システム"}`;
+    const msg = document.createElement("div");
+    msg.className = log.status;
+    msg.textContent = log.message;
+    li.append(name, msg);
+    unfollowLogList.append(li);
+  }
+}
+
 function renderThanks(queue: ThanksItem[], preview: string): void {
   const next = queue[0];
   thanksBlock.hidden = !next;
@@ -96,12 +173,14 @@ function renderThanks(queue: ThanksItem[], preview: string): void {
 }
 
 async function refresh(): Promise<void> {
-  const [jobRes, thanksRes, scheduleRes] = await Promise.all([
+  const [jobRes, thanksRes, scheduleRes, unfollowRes] = await Promise.all([
     send({ type: "GET_JOB" }),
     send({ type: "GET_THANKS" }),
     send({ type: "GET_SCHEDULE" }),
+    send({ type: "GET_UNFOLLOW" }),
   ]);
   if (jobRes.job) render(jobRes.job, jobRes.error);
+  if (unfollowRes.unfollowJob) renderUnfollow(unfollowRes.unfollowJob, unfollowRes.error);
   renderThanks(thanksRes.thanksQueue ?? [], thanksRes.thanksPreview ?? "");
   scheduleNext.textContent = `次回の自動フォロー: ${scheduleRes.scheduleNextLabel ?? "未設定"}`;
 }
@@ -172,6 +251,41 @@ thanksOpen.addEventListener("click", () => {
   })();
 });
 
+unfollowBtn.addEventListener("click", () => {
+  void (async () => {
+    unfollowBtn.disabled = true;
+    unfollowTestBtn.disabled = true;
+    const res = await send({ type: "START_UNFOLLOW" });
+    const job = res.unfollowJob ?? (await send({ type: "GET_UNFOLLOW" })).unfollowJob;
+    if (job) renderUnfollow(job, res.ok ? undefined : res.error);
+    else {
+      unfollowBtn.disabled = false;
+      unfollowTestBtn.disabled = false;
+    }
+  })();
+});
+
+unfollowTestBtn.addEventListener("click", () => {
+  void (async () => {
+    unfollowTestBtn.disabled = true;
+    const res = await send({ type: "TEST_UNFOLLOW" });
+    const job = res.unfollowJob ?? (await send({ type: "GET_UNFOLLOW" })).unfollowJob;
+    if (job) renderUnfollow(job, res.ok ? undefined : res.error);
+    if (!res.ok && res.error) {
+      errorEl.hidden = false;
+      errorEl.textContent = res.error;
+    }
+    unfollowTestBtn.disabled = lastFollowRunning || lastUnfollowRunning;
+  })();
+});
+
+unfollowStopBtn.addEventListener("click", () => {
+  void (async () => {
+    const res = await send({ type: "STOP_UNFOLLOW" });
+    if (res.unfollowJob) renderUnfollow(res.unfollowJob, res.error);
+  })();
+});
+
 thanksSkip.addEventListener("click", () => {
   void (async () => {
     const res = await send({ type: "SKIP_THANKS" });
@@ -187,6 +301,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.job?.newValue) {
     render(changes.job.newValue as JobState);
+  }
+  if (changes.unfollowJob?.newValue) {
+    renderUnfollow(changes.unfollowJob.newValue as UnfollowJobState);
   }
   if (changes.thanksQueue) {
     void refresh();

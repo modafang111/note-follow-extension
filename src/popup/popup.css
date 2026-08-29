@@ -212,8 +212,29 @@ dd {
   font-weight: 600;
 }
 
-.log-list .followed {
+.log-list .followed,
+.log-list .unfollowed {
   color: var(--green-dark);
+}
+
+.unfollow-block {
+  margin-top: 18px;
+}
+
+.unfollow-block h2 {
+  margin-top: 0;
+}
+
+.unfollow-log-list {
+  margin-top: 12px;
+  max-height: 140px;
+}
+
+#unfollow-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--danger);
+  transition: width 0.2s ease;
 }
 
 .log-list .skipped {

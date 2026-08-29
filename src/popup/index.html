@@ -64,6 +64,34 @@
       </p>
     </section>
 
+    <section class="progress-block unfollow-block">
+      <h2>フォロー解除</h2>
+      <p class="hint">
+        こちらがフォローしていて、相手がフォローしていない人（退会した人を含む）のフォローを外します。フォロー返しとは別に動きます。
+      </p>
+      <div class="actions">
+        <button id="unfollow-btn" type="button">片思い・退会を解除</button>
+      </div>
+      <div class="actions">
+        <button id="unfollow-test-btn" type="button" class="secondary">解除のテスト実行</button>
+        <button id="unfollow-stop-btn" type="button" class="secondary" disabled>解除を停止</button>
+      </div>
+      <p id="unfollow-last-run" class="hint schedule-next">解除の終了: まだありません</p>
+      <div class="progress-meta">
+        <span id="unfollow-progress-label">0 / 0</span>
+        <span id="unfollow-current-label"></span>
+      </div>
+      <div class="bar" aria-hidden="true">
+        <div id="unfollow-bar-fill"></div>
+      </div>
+      <dl class="stats">
+        <div><dt>解除</dt><dd id="unfollowed">0</dd></div>
+        <div><dt>スキップ</dt><dd id="unfollow-skipped">0</dd></div>
+        <div><dt>失敗</dt><dd id="unfollow-failed">0</dd></div>
+      </dl>
+      <ul id="unfollow-log-list" class="log-list unfollow-log-list"></ul>
+    </section>
+
     <footer>
       <button id="options-btn" type="button" class="link">自動フォローと対象リストを設定</button>
     </footer>

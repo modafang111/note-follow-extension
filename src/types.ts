@@ -1,6 +1,6 @@
 export type JobStatus = "idle" | "running" | "stopped" | "completed";
 
-export type LogStatus = "followed" | "skipped" | "error" | "info";
+export type LogStatus = "followed" | "unfollowed" | "skipped" | "error" | "info";
 
 export type JobLog = {
   urlname: string;
@@ -61,6 +61,52 @@ export type FollowersPage = {
   totalCount: number;
 };
 
+export type UnfollowReason = "withdrawn" | "not-followed";
+
+export type Following = {
+  urlname: string;
+  key: string;
+  nickname?: string;
+  isFollowing: boolean;
+  isFollowed: boolean;
+  withdrawal: boolean;
+};
+
+export type FollowingsPage = {
+  follows: Following[];
+  isLastPage: boolean;
+  totalCount: number;
+};
+
+export type UnfollowTarget = {
+  urlname: string;
+  key: string;
+  nickname?: string;
+  reason: UnfollowReason;
+};
+
+export type UnfollowJobState = {
+  status: JobStatus;
+  queue: UnfollowTarget[];
+  current: string | null;
+  processed: number;
+  total: number;
+  unfollowed: number;
+  skipped: number;
+  failed: number;
+  logs: JobLog[];
+  error: string | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+};
+
+export type UnfollowJobResult = {
+  trigger: "manual" | "test";
+  found: number;
+  started: boolean;
+  message: string;
+};
+
 export type ScheduledJobTrigger = "manual" | "alarm" | "startup" | "test";
 
 export type ScheduledJobResult = {
@@ -98,6 +144,10 @@ export type RuntimeMessage =
   | { type: "TEST_FOLLOW" }
   | { type: "GET_SCHEDULE" }
   | { type: "SET_SCHEDULE"; settings: ScheduleSettings }
+  | { type: "START_UNFOLLOW" }
+  | { type: "STOP_UNFOLLOW" }
+  | { type: "TEST_UNFOLLOW" }
+  | { type: "GET_UNFOLLOW" }
   | { type: "THANKS_FILL_RESULT"; sent: boolean; error?: string };
 
 export type RuntimeResponse = {
@@ -112,4 +162,6 @@ export type RuntimeResponse = {
   schedule?: ScheduleSettings;
   scheduleEnabled?: boolean;
   scheduleNextLabel?: string;
+  unfollowJob?: UnfollowJobState;
+  unfollow?: UnfollowJobResult;
 };
