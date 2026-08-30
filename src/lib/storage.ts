@@ -6,6 +6,8 @@ import type {
   ThanksItem,
   ThanksSettings,
   UnfollowJobState,
+  UnfollowScheduleRepeat,
+  UnfollowScheduleSettings,
 } from "../types";
 import { DEFAULT_THANKS_SETTINGS } from "./thanks";
 
@@ -18,6 +20,7 @@ const COMPLETED_KEY = "completedUrlnames";
 const SCHEDULE_KEY = "scheduleSettings";
 const UNFOLLOW_JOB_KEY = "unfollowJob";
 const UNFOLLOWED_KEY = "unfollowedUrlnames";
+const UNFOLLOW_SCHEDULE_KEY = "unfollowScheduleSettings";
 
 export const EMPTY_JOB: JobState = {
   status: "idle",
@@ -183,4 +186,35 @@ export async function addUnfollowedUrlname(urlname: string): Promise<void> {
   const current = await getUnfollowedUrlnames();
   if (current.some((name) => name.toLowerCase() === key)) return;
   await chrome.storage.local.set({ [UNFOLLOWED_KEY]: [...current, urlname] });
+}
+
+export const DEFAULT_UNFOLLOW_SCHEDULE_SETTINGS: UnfollowScheduleSettings = {
+  enabled: false,
+  startAt: "",
+  repeat: "weekly",
+};
+
+function isUnfollowScheduleRepeat(value: unknown): value is UnfollowScheduleRepeat {
+  return value === "once" || value === "weekly";
+}
+
+export async function getUnfollowScheduleSettings(): Promise<UnfollowScheduleSettings> {
+  const result = await chrome.storage.local.get(UNFOLLOW_SCHEDULE_KEY);
+  const stored = result[UNFOLLOW_SCHEDULE_KEY] as
+    | Partial<UnfollowScheduleSettings>
+    | undefined;
+  return {
+    ...DEFAULT_UNFOLLOW_SCHEDULE_SETTINGS,
+    enabled: Boolean(stored?.enabled),
+    startAt: typeof stored?.startAt === "string" ? stored.startAt : "",
+    repeat: isUnfollowScheduleRepeat(stored?.repeat)
+      ? stored.repeat
+      : DEFAULT_UNFOLLOW_SCHEDULE_SETTINGS.repeat,
+  };
+}
+
+export async function setUnfollowScheduleSettings(
+  settings: UnfollowScheduleSettings,
+): Promise<void> {
+  await chrome.storage.local.set({ [UNFOLLOW_SCHEDULE_KEY]: settings });
 }

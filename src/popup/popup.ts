@@ -38,6 +38,7 @@ const unfollowedEl = document.querySelector<HTMLElement>("#unfollowed")!;
 const unfollowSkippedEl = document.querySelector<HTMLElement>("#unfollow-skipped")!;
 const unfollowFailedEl = document.querySelector<HTMLElement>("#unfollow-failed")!;
 const unfollowLogList = document.querySelector<HTMLUListElement>("#unfollow-log-list")!;
+const unfollowScheduleNext = document.querySelector<HTMLElement>("#unfollow-schedule-next")!;
 const unfollowLastRun = document.querySelector<HTMLElement>("#unfollow-last-run")!;
 
 const STATUS_LABEL: Record<JobState["status"], string> = {
@@ -173,16 +174,19 @@ function renderThanks(queue: ThanksItem[], preview: string): void {
 }
 
 async function refresh(): Promise<void> {
-  const [jobRes, thanksRes, scheduleRes, unfollowRes] = await Promise.all([
-    send({ type: "GET_JOB" }),
-    send({ type: "GET_THANKS" }),
-    send({ type: "GET_SCHEDULE" }),
-    send({ type: "GET_UNFOLLOW" }),
-  ]);
+  const [jobRes, thanksRes, scheduleRes, unfollowRes, unfollowScheduleRes] =
+    await Promise.all([
+      send({ type: "GET_JOB" }),
+      send({ type: "GET_THANKS" }),
+      send({ type: "GET_SCHEDULE" }),
+      send({ type: "GET_UNFOLLOW" }),
+      send({ type: "GET_UNFOLLOW_SCHEDULE" }),
+    ]);
   if (jobRes.job) render(jobRes.job, jobRes.error);
   if (unfollowRes.unfollowJob) renderUnfollow(unfollowRes.unfollowJob, unfollowRes.error);
   renderThanks(thanksRes.thanksQueue ?? [], thanksRes.thanksPreview ?? "");
   scheduleNext.textContent = `次回の自動フォロー: ${scheduleRes.scheduleNextLabel ?? "未設定"}`;
+  unfollowScheduleNext.textContent = `次回の自動解除: ${unfollowScheduleRes.unfollowScheduleNextLabel ?? "未設定"}`;
 }
 
 importBtn.addEventListener("click", () => {

@@ -19,6 +19,14 @@ import {
   stopUnfollowJob,
   UNFOLLOW_ALARM,
 } from "./lib/unfollow-job";
+import {
+  applyUnfollowSchedule,
+  getUnfollowScheduleStatus,
+  notifyUnfollowScheduleFailure,
+  restoreUnfollowScheduleAlarm,
+  runScheduledUnfollow,
+  UNFOLLOW_SCHEDULE_ALARM,
+} from "./lib/unfollow-schedule";
 import type { RuntimeMessage, RuntimeResponse } from "./types";
 
 async function scheduleResponse(): Promise<RuntimeResponse> {
@@ -35,6 +43,23 @@ async function dispatch(message: RuntimeMessage): Promise<RuntimeResponse> {
   try {
     if (message.type === "GET_UNFOLLOW") {
       return { ok: true, unfollowJob: await getUnfollowJob() };
+    }
+    if (message.type === "GET_UNFOLLOW_SCHEDULE") {
+      const { settings, nextLabel } = await getUnfollowScheduleStatus();
+      return {
+        ok: true,
+        unfollowSchedule: settings,
+        unfollowScheduleNextLabel: nextLabel,
+      };
+    }
+    if (message.type === "SET_UNFOLLOW_SCHEDULE") {
+      await applyUnfollowSchedule(message.settings);
+      const { settings, nextLabel } = await getUnfollowScheduleStatus();
+      return {
+        ok: true,
+        unfollowSchedule: settings,
+        unfollowScheduleNextLabel: nextLabel,
+      };
     }
     if (message.type === "TEST_UNFOLLOW") {
       const unfollow = await runTestUnfollow();
@@ -107,6 +132,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     void processUnfollowNext();
     return;
   }
+  if (alarm.name === UNFOLLOW_SCHEDULE_ALARM) {
+    void runScheduledUnfollow("alarm").catch(async (error) => {
+      const text = error instanceof Error ? error.message : String(error);
+      await notifyUnfollowScheduleFailure(text);
+    });
+    return;
+  }
   if (alarm.name === SCHEDULE_ALARM) {
     void (async () => {
       if (await isUnfollowRunning()) {
@@ -133,6 +165,7 @@ chrome.runtime.onInstalled.addListener(() => {
   void restoreScheduleAlarm();
   void resumeThanksDelivery();
   void resumeUnfollowIfNeeded();
+  void restoreUnfollowScheduleAlarm();
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -140,9 +173,11 @@ chrome.runtime.onStartup.addListener(() => {
   void restoreScheduleAlarm();
   void resumeThanksDelivery();
   void resumeUnfollowIfNeeded();
+  void restoreUnfollowScheduleAlarm();
 });
 
 void resumeIfNeeded();
 void restoreScheduleAlarm();
 void resumeThanksDelivery();
 void resumeUnfollowIfNeeded();
+void restoreUnfollowScheduleAlarm();

@@ -101,10 +101,18 @@ export type UnfollowJobState = {
 };
 
 export type UnfollowJobResult = {
-  trigger: "manual" | "test";
+  trigger: "manual" | "test" | "alarm";
   found: number;
   started: boolean;
   message: string;
+};
+
+export type UnfollowScheduleRepeat = "once" | "weekly";
+
+export type UnfollowScheduleSettings = {
+  enabled: boolean;
+  startAt: string;
+  repeat: UnfollowScheduleRepeat;
 };
 
 export type ScheduledJobTrigger = "manual" | "alarm" | "startup" | "test";
@@ -148,6 +156,8 @@ export type RuntimeMessage =
   | { type: "STOP_UNFOLLOW" }
   | { type: "TEST_UNFOLLOW" }
   | { type: "GET_UNFOLLOW" }
+  | { type: "GET_UNFOLLOW_SCHEDULE" }
+  | { type: "SET_UNFOLLOW_SCHEDULE"; settings: UnfollowScheduleSettings }
   | { type: "THANKS_FILL_RESULT"; sent: boolean; error?: string };
 
 export type RuntimeResponse = {
@@ -164,4 +174,6 @@ export type RuntimeResponse = {
   scheduleNextLabel?: string;
   unfollowJob?: UnfollowJobState;
   unfollow?: UnfollowJobResult;
+  unfollowSchedule?: UnfollowScheduleSettings;
+  unfollowScheduleNextLabel?: string;
 };
