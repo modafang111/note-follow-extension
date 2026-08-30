@@ -43,6 +43,12 @@ function prependLog(job: UnfollowJobState, log: Omit<JobLog, "at">): void {
   job.logs = [{ ...log, at: Date.now() }, ...job.logs].slice(0, MAX_LOGS);
 }
 
+export async function appendUnfollowInfo(message: string): Promise<void> {
+  const job = await getUnfollowJob();
+  prependLog(job, { urlname: "", status: "info", message });
+  await setUnfollowJob(job);
+}
+
 async function collectUnfollowTargets(): Promise<UnfollowTarget[]> {
   const me = await fetchCurrentUser();
   const all: Following[] = [];

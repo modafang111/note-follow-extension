@@ -78,8 +78,28 @@
 
       <h2>フォロー解除（片思い・退会）</h2>
       <p>
-        こちらがフォローしていて、相手がフォローしていない人は全員解除します。退会した人も対象です。実行とテストはポップアップの「フォロー解除」から行います。フォロー返し・お礼・開始日時の設定は変わりません。
+        こちらがフォローしていて、相手がフォローしていない人は全員解除します。退会した人も対象です。開始日時を入れて保存すると、その日時から毎週1回、自動で解除します。今すぐやるときはポップアップの「片思い・退会を解除」です。フォロー返し・お礼・開始日時の設定は変わりません。
       </p>
+      <label class="check">
+        <input id="unfollow-schedule-enabled" type="checkbox" />
+        毎週の自動フォロー解除を使う
+      </label>
+      <label for="unfollow-schedule-start">開始日時</label>
+      <input id="unfollow-schedule-start" type="datetime-local" />
+      <label for="unfollow-schedule-repeat">繰り返し</label>
+      <select id="unfollow-schedule-repeat">
+        <option value="weekly" selected>毎週1回</option>
+        <option value="once">指定日時に1回だけ</option>
+      </select>
+      <p class="muted">
+        解除のテスト実行は、誰が対象になるか確認するだけです。実際には解除しません。上の「保存」とは別に、下のボタンで解除の日時だけ保存できます。
+      </p>
+      <div class="row">
+        <button id="unfollow-save-btn" type="button">解除の日時を保存</button>
+        <button id="unfollow-test-btn" type="button" class="secondary">解除のテスト実行</button>
+        <span id="unfollow-saved" hidden>保存しました</span>
+      </div>
+      <pre id="unfollow-test-result" class="test-result" hidden></pre>
     </main>
     <script type="module" src="./options.ts"></script>
   </body>

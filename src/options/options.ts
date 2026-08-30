@@ -6,7 +6,12 @@ import {
 } from "../lib/storage";
 import { DEFAULT_THANKS_TEMPLATE } from "../lib/thanks";
 import { parseUrlnames } from "../lib/urlnames";
-import type { RuntimeMessage, RuntimeResponse, ScheduleRepeat } from "../types";
+import type {
+  RuntimeMessage,
+  RuntimeResponse,
+  ScheduleRepeat,
+  UnfollowScheduleRepeat,
+} from "../types";
 
 const textarea = document.querySelector<HTMLTextAreaElement>("#urlnames")!;
 const saveBtn = document.querySelector<HTMLButtonElement>("#save-btn")!;
@@ -19,6 +24,19 @@ const scheduleRepeat = document.querySelector<HTMLSelectElement>("#schedule-repe
 const testResult = document.querySelector<HTMLElement>("#test-result")!;
 const thanksEnabled = document.querySelector<HTMLInputElement>("#thanks-enabled")!;
 const thanksTemplate = document.querySelector<HTMLTextAreaElement>("#thanks-template")!;
+const unfollowScheduleEnabled = document.querySelector<HTMLInputElement>(
+  "#unfollow-schedule-enabled",
+)!;
+const unfollowScheduleStart = document.querySelector<HTMLInputElement>(
+  "#unfollow-schedule-start",
+)!;
+const unfollowScheduleRepeat = document.querySelector<HTMLSelectElement>(
+  "#unfollow-schedule-repeat",
+)!;
+const unfollowSaveBtn = document.querySelector<HTMLButtonElement>("#unfollow-save-btn")!;
+const unfollowTestBtn = document.querySelector<HTMLButtonElement>("#unfollow-test-btn")!;
+const unfollowSavedEl = document.querySelector<HTMLElement>("#unfollow-saved")!;
+const unfollowTestResult = document.querySelector<HTMLElement>("#unfollow-test-result")!;
 
 function send(message: RuntimeMessage): Promise<RuntimeResponse> {
   return chrome.runtime.sendMessage(message);
@@ -78,6 +96,46 @@ saveBtn.addEventListener("click", () => {
   })();
 });
 
+function isUnfollowScheduleRepeat(value: string): value is UnfollowScheduleRepeat {
+  return value === "once" || value === "weekly";
+}
+
+function readUnfollowSchedule() {
+  const repeat = unfollowScheduleRepeat.value;
+  return {
+    enabled: unfollowScheduleEnabled.checked,
+    startAt: unfollowScheduleStart.value,
+    repeat: isUnfollowScheduleRepeat(repeat) ? repeat : "weekly",
+  };
+}
+
+unfollowSaveBtn.addEventListener("click", () => {
+  void (async () => {
+    const res = await send({
+      type: "SET_UNFOLLOW_SCHEDULE",
+      settings: readUnfollowSchedule(),
+    });
+    if (!res.ok) {
+      flash(unfollowSavedEl, res.error ?? "解除の日時の保存に失敗しました", false);
+      return;
+    }
+    flash(unfollowSavedEl, "保存しました");
+  })();
+});
+
+unfollowTestBtn.addEventListener("click", () => {
+  void (async () => {
+    unfollowTestBtn.disabled = true;
+    unfollowTestResult.hidden = true;
+    const res = await send({ type: "TEST_UNFOLLOW" });
+    unfollowTestResult.hidden = false;
+    unfollowTestResult.textContent = res.ok
+      ? (res.unfollow?.message ?? "解除のテスト実行が完了しました。")
+      : (res.error ?? "解除のテスト実行に失敗しました");
+    unfollowTestBtn.disabled = false;
+  })();
+});
+
 testBtn.addEventListener("click", () => {
   void (async () => {
     testBtn.disabled = true;
@@ -101,5 +159,10 @@ void (async () => {
   scheduleEnabled.checked = Boolean(schedule?.enabled ?? scheduleRes.scheduleEnabled);
   scheduleStart.value = schedule?.startAt ?? "";
   scheduleRepeat.value = schedule?.repeat ?? "daily";
+  const unfollowScheduleRes = await send({ type: "GET_UNFOLLOW_SCHEDULE" });
+  const unfollowSchedule = unfollowScheduleRes.unfollowSchedule;
+  unfollowScheduleEnabled.checked = Boolean(unfollowSchedule?.enabled);
+  unfollowScheduleStart.value = unfollowSchedule?.startAt ?? "";
+  unfollowScheduleRepeat.value = unfollowSchedule?.repeat ?? "weekly";
   updateCount();
 })();
